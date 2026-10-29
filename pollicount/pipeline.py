@@ -36,6 +36,38 @@ class Analysis:
     groups: dict[str, classify.Classification]
     record: dict
 
+    def to_json(self) -> dict:
+        """Everything the web app needs to draw tracks over the video and show the record."""
+
+        def boxes(track: Track) -> list[list[float]]:
+            return [
+                [f, *(round(v, 1) for v in (b.left, b.top, b.right, b.bottom))] for f, b in sorted(track.boxes.items())
+            ]
+
+        def insect(track: Track) -> dict:
+            group = self.groups.get(track.object_id)
+            return {
+                "id": track.object_id,
+                "visiting": track.object_id in visiting,
+                "group": group.group if group else None,
+                "confidence": group.confidence if group else None,
+                "cues": group.cues if group else [],
+                "boxes": boxes(track),
+            }
+
+        visiting = {v.insect_id for v in self.visits}
+        return {
+            "video": {
+                "width": self.info.width,
+                "height": self.info.height,
+                "fps": self.info.fps,
+                "frames": self.info.frames,
+            },
+            "flowers": [{"id": t.object_id, "boxes": boxes(t)} for t in self.flowers],
+            "insects": [insect(t) for t in self.insects],
+            "record": self.record,
+        }
+
 
 def sam_tracker(cache_dir: Path) -> Tracker:
     return lambda clip, concept: sam.track(clip, concept, cache_dir)

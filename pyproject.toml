@@ -6,8 +6,11 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.162.0",
     "meta-sam-parser>=0.1.0",
     "openai>=3.0",
+    "python-multipart>=0.0.32",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [project.scripts]
@@ -15,6 +18,7 @@ pollicount = "pollicount.cli:main"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pip-audit>=2.10.1",
     "pytest>=8",
     "ruff>=0.17.3",
@@ -40,4 +44,4 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["pollicount"]
-known-local-folder = ["samples"]
+known-local-folder = ["samples", "test_pipeline"]
