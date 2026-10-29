@@ -72,9 +72,11 @@ def to_sam_mp4(src: Path, dst: Path, fps: float | None = None, max_side: int | N
     return dst
 
 
-def crop(video: Path, frame: int, fps: float, box: Box, dst: Path, pad: float = 0.3, size: int = 384) -> Path:
+def crop(
+    video: Path, frame: int, fps: float, box: Box, dst: Path, pad: float = 0.3, size: int = 384, min_side: int = 96
+) -> Path:
     """Square crop around ``box`` at ``frame``, padded so the flower context stays visible."""
-    side = max(box.width, box.height) * (1 + 2 * pad)
+    side = max(max(box.width, box.height) * (1 + 2 * pad), min_side)
     cx, cy = box.center
     x, y = max(0, int(cx - side / 2)), max(0, int(cy - side / 2))
     dst.parent.mkdir(parents=True, exist_ok=True)
