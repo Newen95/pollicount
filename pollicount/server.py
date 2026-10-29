@@ -20,7 +20,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import pipeline
+from . import pipeline, video
 
 logger = logging.getLogger("pollicount")
 
@@ -29,8 +29,22 @@ JOB_TTL_S = 24 * 3600
 WEB_DIR = Path(__file__).parent / "web"
 
 
+@dataclass(frozen=True)
+class Limits:
+    """Keeps a public deployment within its API budget."""
+
+    max_video_s: float = 120
+    max_per_hour: int = 20
+
+
+class VideoTooLong(Exception):
+    pass
+
+
 def user_message(error: Exception) -> str:
     """What the volunteer sees when an analysis fails. Internals stay in the server logs."""
+    if isinstance(error, VideoTooLong):
+        return str(error)
     if isinstance(error, subprocess.CalledProcessError):
         return "This file could not be read as a video."
     if isinstance(error, KeyError):
@@ -63,8 +77,10 @@ def create_app(
     data_dir: Path,
     tracker: Callable[[Path], pipeline.Tracker],
     classifier: pipeline.Classifier | None,
+    limits: Limits | None = None,
 ) -> FastAPI:
     """``tracker`` builds a tracker from a cache directory, so tests can inject a fake one."""
+    limits = limits or Limits()
     app = FastAPI(title="PolliCount")
     jobs: dict[str, Job] = {}
     lock = threading.Lock()
@@ -85,6 +101,12 @@ def create_app(
 
         job.status = "running"
         try:
+            duration = video.probe(source).duration_s
+            if duration > limits.max_video_s:
+                raise VideoTooLong(
+                    f"This video lasts {duration / 60:.1f} min. Videos are limited to "
+                    f"{limits.max_video_s / 60:g} min here: trim it and upload it again."
+                )
             analysis = pipeline.analyse(source, job.dir, tracker(data_dir / "sam-cache"), classifier, progress=progress)
             job.result = analysis.to_json()
             job.status = "done"
@@ -103,6 +125,11 @@ def create_app(
     @app.post("/api/analyses", status_code=202)
     async def create_analysis(file: UploadFile, background: BackgroundTasks) -> dict:
         purge_old_jobs()
+        hour_ago = time.time() - 3600
+        recent = sorted(j.created for j in jobs.values() if j.created > hour_ago)
+        if len(recent) >= limits.max_per_hour:
+            wait_min = max(1, round((recent[0] - hour_ago) / 60))
+            raise HTTPException(429, f"PolliCount has reached its hourly limit. Try again in {wait_min} min.")
         job_id = uuid.uuid4().hex
         job = Job(job_id, data_dir / job_id)
         job.dir.mkdir()
@@ -150,4 +177,8 @@ def production_app() -> FastAPI:
         Path(os.environ.get("POLLICOUNT_DATA", "outputs/server")),
         pipeline.sam_tracker,
         None if backend == "none" else pipeline.model_classifier(backend),
+        Limits(
+            max_video_s=float(os.environ.get("POLLICOUNT_MAX_VIDEO_S", 120)),
+            max_per_hour=int(os.environ.get("POLLICOUNT_MAX_PER_HOUR", 20)),
+        ),
     )

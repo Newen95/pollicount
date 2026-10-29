@@ -76,3 +76,26 @@ def test_web_app_is_served(client: TestClient):
     assert page.status_code == 200
     assert "Count the pollinators" in page.text
     assert client.get("/app.js").status_code == 200
+
+
+def test_too_long_video_fails_before_any_api_call(tmp_path: Path, video_bytes: bytes):
+    def tracker_must_not_run(cache):
+        raise AssertionError("SAM must not be called")
+
+    app = server.create_app(tmp_path / "data", tracker_must_not_run, None, server.Limits(max_video_s=1))
+    client = TestClient(app)
+    job_id = client.post("/api/analyses", files={"file": ("long.webm", video_bytes, "video/webm")}).json()["id"]
+    status = client.get(f"/api/analyses/{job_id}").json()
+
+    assert status["status"] == "failed"
+    assert "limited to" in status["error"]
+
+
+def test_hourly_limit_refuses_new_uploads(tmp_path: Path, video_bytes: bytes):
+    app = server.create_app(tmp_path / "data", lambda cache: fake_tracker, None, server.Limits(max_per_hour=1))
+    client = TestClient(app)
+    assert client.post("/api/analyses", files={"file": ("a.webm", video_bytes, "video/webm")}).status_code == 202
+    refused = client.post("/api/analyses", files={"file": ("b.webm", video_bytes, "video/webm")})
+
+    assert refused.status_code == 429
+    assert "hourly limit" in refused.json()["detail"]
