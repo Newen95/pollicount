@@ -9,7 +9,7 @@ phone video
   -> visits.find_visits      insect still on a flower for >= 0.3 s
   -> video.crop              best frames of each visiting insect
   -> classify.classify_crops FIT Count group, or "not an insect"
-  -> export.fit_count        visits per group, JSON and CSV
+  -> export.fit_count        distinct insects per group (FIT Count) and visits, JSON and CSV
 ```
 
 ## Layers

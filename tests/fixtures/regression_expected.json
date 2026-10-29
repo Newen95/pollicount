@@ -3,6 +3,19 @@
   "flowers_tracked": 3,
   "counts": {
     "bumblebees": 0,
+    "honeybees": 1,
+    "solitary bees": 0,
+    "wasps": 0,
+    "hoverflies": 1,
+    "other flies": 0,
+    "butterflies & moths": 0,
+    "beetles": 0,
+    "small insects": 0,
+    "other insects": 0
+  },
+  "insects": 2,
+  "visit_counts": {
+    "bumblebees": 0,
     "honeybees": 2,
     "solitary bees": 0,
     "wasps": 0,
@@ -14,7 +27,6 @@
     "other insects": 0
   },
   "total_visits": 3,
-  "insects": 2,
   "visits": [
     {
       "insect": "1",

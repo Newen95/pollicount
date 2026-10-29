@@ -27,7 +27,7 @@ def test_parse_reply_clamps_confidence():
     assert parse_reply('{"group": "wasps", "confidence": 7}').confidence == 1.0
 
 
-def test_fit_count_drops_non_insects_and_counts_per_group(tmp_path):
+def test_fit_count_counts_each_insect_once_and_drops_non_insects(tmp_path):
     visits = [
         Visit("1", "f", 0, 9, 10),
         Visit("1", "f", 30, 39, 10),
@@ -41,7 +41,8 @@ def test_fit_count_drops_non_insects_and_counts_per_group(tmp_path):
     }
     record = export.fit_count(visits, groups, duration_s=600, flowers=4)
 
-    assert record["counts"]["honeybees"] == 2
+    assert record["counts"]["honeybees"] == 1
+    assert record["visit_counts"]["honeybees"] == 2
     assert record["counts"]["hoverflies"] == 1
     assert record["total_visits"] == 3
     assert record["insects"] == 2
@@ -49,4 +50,4 @@ def test_fit_count_drops_non_insects_and_counts_per_group(tmp_path):
 
     export.write(record, tmp_path)
     assert json.loads((tmp_path / "fit_count.json").read_text())["total_visits"] == 3
-    assert (tmp_path / "fit_count.csv").read_text().splitlines()[1].endswith(",3")
+    assert (tmp_path / "fit_count.csv").read_text().splitlines()[1].endswith(",2")

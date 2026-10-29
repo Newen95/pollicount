@@ -126,13 +126,14 @@ async function showResult(id) {
   $("progress").hidden = true;
   $("results").hidden = false;
   document.querySelector(".playback").hidden = false;
-  $("total").textContent = record.total_visits;
-  $("total-label").textContent = record.total_visits === 1 ? "visit" : "visits";
+  const plural = (n, word) => `${n} ${n === 1 ? word : `${word}s`}`;
+  $("total").textContent = record.insects;
+  $("total-label").textContent = record.insects === 1 ? "pollinator" : "pollinators";
   const minutes = record.duration_min < 1 ? `${Math.round(record.duration_min * 60)} s` : `${record.duration_min} min`;
   $("summary").textContent =
-    record.total_visits === 0
+    record.insects === 0
       ? `No insect stayed on a flower long enough in ${minutes} of video. Try a sunnier moment or a patch in full bloom.`
-      : `${record.insects} ${record.insects === 1 ? "insect" : "insects"} landed on ${record.flowers_tracked} tracked flowers in ${minutes} of video.`;
+      : `${plural(record.total_visits, "visit")} to ${plural(record.flowers_tracked, "tracked flower")} in ${minutes} of video. Each dot is one visit.`;
   renderLedger(record);
   const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
   $("download-json").href = URL.createObjectURL(blob);

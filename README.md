@@ -21,7 +21,7 @@ A volunteer films a flower patch with a phone for 10 minutes. PolliCount:
 | `sam.py` | one SAM 3.1 request per concept (`insect`, `flower`), raw output cached so a video is never billed twice |
 | `visits.py` | visit rule: insect mostly inside a flower box, nearly still, for at least 0.3 s; short tracking dropouts are bridged |
 | `classify.py` | sends the best crops of each visiting insect to an OpenAI-compatible vision model |
-| `export.py` | visits per FIT Count group |
+| `export.py` | distinct insects per FIT Count group, plus every visit |
 
 ## Usage
 
@@ -47,6 +47,14 @@ dependency audit, secret scan): `uv run python scripts/check.py`. See [docs/ARCH
 ## Status
 
 Work in progress.
+
+## What counts
+
+FIT Count asks volunteers to count every insect *sitting on or landing on* a target flower, each insect once.
+There is no agreed minimum duration in the literature, so PolliCount makes "landing" measurable: an insect
+counts when most of it lies on a flower and it stays nearly still for at least 0.3 s (`--min-visit`), which
+leaves out insects flying past. The record gives distinct insects per group, as FIT Count expects, and keeps
+every visit (insect, flower, start, duration) for finer analyses. Spiders and caterpillars are not counted.
 
 ## Evaluation
 

@@ -39,6 +39,7 @@ def test_golden_record_tells_the_expected_story():
     visits = [(v["insect"], v["flower"]) for v in record["visits"]]
 
     assert visits == [("1", "10"), ("1", "11"), ("2", "12")]
-    assert record["counts"]["honeybees"] == 2
+    assert record["counts"]["honeybees"] == 1
+    assert record["visit_counts"]["honeybees"] == 2
     assert record["counts"]["hoverflies"] == 1
-    assert record["total_visits"] == 3
+    assert (record["insects"], record["total_visits"]) == (2, 3)

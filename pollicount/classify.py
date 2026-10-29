@@ -46,7 +46,8 @@ BACKENDS = {
 
 PROMPT = f"""These crops show the same insect, tracked in a video of a flower patch.
 Classify it into exactly one FIT Count group: {", ".join(FIT_GROUPS)}.
-"small insects" means shorter than 3 mm. Answer "{NOT_AN_INSECT}" if the crops show debris, a leaf or a shadow.
+"small insects" means shorter than 3 mm. Answer "{NOT_AN_INSECT}" for debris, a leaf, a shadow,
+a spider or a caterpillar: FIT Count does not count them.
 Reply with JSON only: {{"group": "...", "confidence": 0.0, "visible_cues": ["..."]}}"""
 
 
