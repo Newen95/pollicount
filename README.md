@@ -27,7 +27,7 @@ A volunteer films a flower patch with a phone for 10 minutes. PolliCount:
 
 ```
 uv sync
-uv run pollicount run my_video.mp4 --out outputs/my_video --backend spark
+uv run pollicount run my_video.mp4 --out outputs/my_video --backend spark-open
 ```
 
 | Backend | Model | Key |
