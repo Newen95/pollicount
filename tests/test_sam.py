@@ -102,3 +102,11 @@ def test_fast_parser_matches_meta_parser():
 def test_cost_estimate_follows_meta_pricing():
     assert sam.estimate_cost(9000, 2) == pytest.approx(3.6)
     assert sam.estimate_cost(10, 1) == pytest.approx(0.01)
+
+
+def test_fast_parser_matches_meta_parser_on_real_sam_output():
+    raw = (Path(__file__).parent / "fixtures" / "sam31_real_insect.txt").read_text(encoding="utf-8")
+    tracks = sam.parse_tracks(raw, "insect")
+
+    assert len(tracks) == 1 and len(tracks[0].boxes) == 2
+    assert _as_dict(tracks) == _as_dict(sam.parse_tracks_strict(raw, "insect"))
