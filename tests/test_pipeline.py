@@ -22,7 +22,9 @@ def source(tmp_path: Path) -> Path:
     return path
 
 
-def fake_tracker(clip: Path, concept: str):
+def fake_tracker(clip: Path, concept: str, on_frame=None):
+    if on_frame:
+        on_frame(29)
     if concept == "flower":
         return [track("10", "flower", {f: (100, 80, 200, 180) for f in range(30)})]
     return [

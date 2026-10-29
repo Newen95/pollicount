@@ -25,6 +25,17 @@ def _add_analysis_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--yes", action="store_true", help="run without asking to confirm the SAM cost")
 
 
+def _printer() -> pipeline.Progress:
+    last = {"stage": None, "value": -1.0}
+
+    def show(stage: str, value: float) -> None:
+        if stage != last["stage"] or value - last["value"] >= 0.05:
+            print(f"{value:4.0%} {stage}", flush=True)
+            last.update(stage=stage, value=value)
+
+    return show
+
+
 def _analyse(args: argparse.Namespace) -> pipeline.Analysis:
     source = video.probe(args.video)
     frames = round(source.duration_s * args.fps)
@@ -45,7 +56,7 @@ def _analyse(args: argparse.Namespace) -> pipeline.Analysis:
         pipeline.sam_tracker(args.cache),
         None if args.backend == "none" else pipeline.model_classifier(args.backend),
         settings,
-        progress=lambda stage, value: print(f"{value:4.0%} {stage}", flush=True),
+        progress=_printer(),
     )
 
 

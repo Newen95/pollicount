@@ -10,7 +10,8 @@ from . import classify, export, sam, video
 from .geometry import Track
 from .visits import Visit, VisitRule, find_visits
 
-Tracker = Callable[[Path, str], list[Track]]
+Tracker = Callable[[Path, str, Callable[[int], None]], list[Track]]
+"""Tracks one concept in a clip, reporting the last frame it has processed."""
 Classifier = Callable[[list[Path]], classify.Classification]
 Progress = Callable[[str, float], None]
 """Receives a stage name and the overall progress, from 0 to 1."""
@@ -70,7 +71,7 @@ class Analysis:
 
 
 def sam_tracker(cache_dir: Path) -> Tracker:
-    return lambda clip, concept: sam.track(clip, concept, cache_dir)
+    return lambda clip, concept, on_frame: sam.track(clip, concept, cache_dir, on_frame=on_frame)
 
 
 def model_classifier(backend_name: str) -> Classifier:
@@ -96,10 +97,19 @@ def analyse(
     clip = video.to_sam_mp4(source, work_dir / "clip.mp4", fps=settings.fps, max_side=settings.max_side)
     info = video.probe(clip)
 
+    def frames_done(stage: str, start: float) -> Callable[[int], None]:
+        furthest = [0]
+
+        def on_frame(frame: int) -> None:
+            furthest[0] = max(furthest[0], frame)
+            report(stage, start + 0.3 * min(1.0, furthest[0] / max(info.frames, 1)))
+
+        return on_frame
+
     report("tracking insects", 0.1)
-    insects = tracker(clip, settings.insect_prompt)
+    insects = tracker(clip, settings.insect_prompt, frames_done("tracking insects", 0.1))
     report("tracking flowers", 0.4)
-    flowers = tracker(clip, settings.flower_prompt)
+    flowers = tracker(clip, settings.flower_prompt, frames_done("tracking flowers", 0.4))
 
     report("finding visits", 0.7)
     visits = find_visits(insects, flowers, info.fps, settings.rule)
