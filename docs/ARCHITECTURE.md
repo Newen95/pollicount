@@ -18,9 +18,13 @@ phone video
 |---|---|---|---|
 | core | `geometry`, `visits`, `export` | standard library, other core modules | network, subprocess, environment variables |
 | adapters | `sam`, `classify`, `video` | core, one external service or tool each | business rules (thresholds, counting) |
-| entry point | `cli` | everything | logic that is not wiring |
+| orchestration | `pipeline` | core, adapters | thresholds or service details |
+| entry points | `cli`, `server`, `web/` | `pipeline` | logic that is not wiring or presentation |
 
-Dependencies only point down: `cli` -> adapters -> core. The core stays pure so the counting
+Dependencies only point down: entry points -> `pipeline` -> adapters -> core.
+The web app draws the tracks over the video in the browser from `Analysis.to_json()`, so no video is re-encoded.
+
+The core stays pure so the counting
 logic is tested without any API, video or GPU.
 
 Each adapter takes an optional `client` so tests inject a fake instead of calling the service.

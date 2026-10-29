@@ -36,6 +36,9 @@ uv run pollicount run my_video.mp4 --out outputs/my_video --backend spark-open
 | `spark-open` | `meta-models/muse-spark-open-1026` on Baseten | `BASETEN_API_KEY` |
 | `glimmer` | Muse Glimmer served by `llama-server` on `127.0.0.1:8089` | none |
 
+Web app: `uv run uvicorn --factory pollicount.server:production_app`, then open http://127.0.0.1:8000.
+`POLLICOUNT_BACKEND` picks the classifier (default `spark-open`).
+
 SAM always runs on the Meta Model API (`MODEL_API_KEY`). It is billed per frame, so `--fps` (default 15) sets the cost.
 
 Tests use synthetic SAM outputs and never call an API. All checks (lint, tests, regression scenario,
