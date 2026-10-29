@@ -1,0 +1,22 @@
+{
+  "1": {
+    "group": "honeybees",
+    "confidence": 0.9
+  },
+  "2": {
+    "group": "hoverflies",
+    "confidence": 0.7
+  },
+  "3": {
+    "group": "solitary bees",
+    "confidence": 0.5
+  },
+  "4": {
+    "group": "not an insect",
+    "confidence": 0.8
+  },
+  "5": {
+    "group": "butterflies & moths",
+    "confidence": 0.6
+  }
+}

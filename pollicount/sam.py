@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from pathlib import Path
 
 from meta_sam_parser import CompletedOutcome, SegmentationBoxRecord, video_segmentation_format
@@ -17,10 +18,38 @@ from .geometry import Box, Track
 META_BASE_URL = "https://api.meta.ai/v1"
 SAM_MODEL = "sam-3.1"
 API_KEY_ENV = "MODEL_API_KEY"
+UPLOAD_TTL_S = 24 * 3600
+"""Volunteer videos are deleted from Meta's storage after a day."""
+
+_FRAME = re.compile(r"<(\d+)f>(.*)")
+# Mask payloads never contain "|", so a box token cannot appear inside one.
+_BOX = re.compile(r"(?:^|,)([^,<>|]+)<\|box;([^|]*)\|>")
 
 
 def parse_tracks(raw: str, concept: str) -> list[Track]:
-    """Turn SAM's raw video output into one track per object id."""
+    """Turn SAM's raw video output into one track per object id, reading boxes only.
+
+    Masks are skipped: decoding them costs seconds per frame and visits only need boxes.
+    """
+    tracks: dict[str, Track] = {}
+    for line in raw.splitlines():
+        header = _FRAME.match(line.strip())
+        if header is None:
+            continue
+        frame = int(header.group(1))
+        for object_id, body in _BOX.findall(header.group(2)):
+            fields = dict(item.split("=", 1) for item in body.split(";") if "=" in item)
+            track = tracks.setdefault(object_id, Track(object_id, concept))
+            track.boxes[frame] = Box(
+                float(fields["x1"]), float(fields["y1"]), float(fields["x2"]) + 1, float(fields["y2"]) + 1
+            )
+            if "c" in fields:
+                track.confidences[frame] = float(fields["c"])
+    return list(tracks.values())
+
+
+def parse_tracks_strict(raw: str, concept: str) -> list[Track]:
+    """Same as ``parse_tracks`` through Meta's validating parser, which also decodes every mask."""
     parser = video_segmentation_format().create_parser()
     parser.push(raw)
     result = parser.finish(CompletedOutcome()).result
@@ -49,7 +78,9 @@ def request_tracking(video: Path, concept: str, client=None) -> str:
 
         client = OpenAI(base_url=META_BASE_URL, api_key=os.environ[API_KEY_ENV])
     with video.open("rb") as f:
-        uploaded = client.files.create(file=f, purpose="user_data")
+        uploaded = client.files.create(
+            file=f, purpose="user_data", expires_after={"anchor": "created_at", "seconds": UPLOAD_TTL_S}
+        )
     parts: list[str] = []
     with client.responses.stream(
         model=SAM_MODEL,

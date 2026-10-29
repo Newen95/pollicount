@@ -1,0 +1,44 @@
+{
+  "duration_min": 0.33,
+  "flowers_tracked": 3,
+  "counts": {
+    "bumblebees": 0,
+    "honeybees": 2,
+    "solitary bees": 0,
+    "wasps": 0,
+    "hoverflies": 1,
+    "other flies": 0,
+    "butterflies & moths": 0,
+    "beetles": 0,
+    "small insects": 0,
+    "other insects": 0
+  },
+  "total_visits": 3,
+  "insects": 2,
+  "visits": [
+    {
+      "insect": "1",
+      "flower": "10",
+      "group": "honeybees",
+      "confidence": 0.9,
+      "start_s": 2.0,
+      "duration_s": 2.0
+    },
+    {
+      "insect": "1",
+      "flower": "11",
+      "group": "honeybees",
+      "confidence": 0.9,
+      "start_s": 5.4,
+      "duration_s": 0.73
+    },
+    {
+      "insect": "2",
+      "flower": "12",
+      "group": "hoverflies",
+      "confidence": 0.7,
+      "start_s": 10.07,
+      "duration_s": 0.33
+    }
+  ]
+}
