@@ -82,7 +82,10 @@ def _digest(video: Path) -> str:
 
 
 def cache_path(video: Path, concept: str, cache_dir: Path) -> Path:
+    """``concept`` is a noun phrase or a box/point prompt; long prompts are named by their hash."""
     slug = "".join(c if c.isalnum() else "-" for c in concept.lower())
+    if len(slug) > 40:
+        slug = "prompt-" + hashlib.sha256(concept.encode()).hexdigest()[:12]
     return cache_dir / f"{_digest(video)}.{SAM_MODEL}.{slug}.txt"
 
 
