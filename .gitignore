@@ -1,4 +1,4 @@
-﻿__pycache__/
+__pycache__/
 *.pyc
 .venv/
 .env
@@ -6,3 +6,6 @@ data/
 outputs/
 *.mp4
 *.webm
+.pytest_cache/
+.cache/
+*.egg-info/
