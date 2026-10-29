@@ -41,6 +41,12 @@ BACKENDS = {
     "spark-open": Backend(
         "spark-open", "https://inference.baseten.co/v1", "meta-models/muse-spark-open-1026", "BASETEN_API_KEY"
     ),
+    "spark-open-fireworks": Backend(
+        "spark-open-fireworks",
+        "https://api.fireworks.ai/inference/v1",
+        "accounts/fireworks/models/muse-spark-open",
+        "FIREWORKS_API_KEY",
+    ),
     "glimmer": Backend("glimmer", "http://127.0.0.1:8089/v1", "muse-glimmer", None),
 }
 

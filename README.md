@@ -34,6 +34,7 @@ uv run pollicount run my_video.mp4 --out outputs/my_video --backend spark-open
 |---|---|---|
 | `spark` | `muse-spark-1.3` on the Meta Model API | `META_API_KEY` |
 | `spark-open` | `meta-models/muse-spark-open-1026` on Baseten | `BASETEN_API_KEY` |
+| `spark-open-fireworks` | `muse-spark-open` on Fireworks, fallback for Baseten | `FIREWORKS_API_KEY` |
 | `glimmer` | Muse Glimmer served by `llama-server` on `127.0.0.1:8089` | none |
 
 Web app: `uv run uvicorn --factory pollicount.server:production_app`, then open http://127.0.0.1:8000.
