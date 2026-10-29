@@ -38,7 +38,8 @@ uv run pollicount run my_video.mp4 --out outputs/my_video --backend spark
 
 SAM always runs on the Meta Model API (`MODEL_API_KEY`). It is billed per frame, so `--fps` (default 15) sets the cost.
 
-Tests use synthetic SAM outputs and never call an API: `uv run pytest`.
+Tests use synthetic SAM outputs and never call an API. All checks (lint, tests, regression scenario,
+dependency audit, secret scan): `uv run python scripts/check.py`. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Status
 
