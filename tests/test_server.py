@@ -69,3 +69,10 @@ def test_oversized_upload_is_rejected_and_cleaned(client: TestClient, tmp_path: 
 def test_unknown_analysis_is_404(client: TestClient):
     assert client.get("/api/analyses/../../etc").status_code == 404
     assert client.get("/api/analyses/deadbeef/result").status_code == 404
+
+
+def test_web_app_is_served(client: TestClient):
+    page = client.get("/")
+    assert page.status_code == 200
+    assert "Count the pollinators" in page.text
+    assert client.get("/app.js").status_code == 200
