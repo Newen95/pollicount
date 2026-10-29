@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from pollicount import sam
 
 from samples import sam_frame, sam_record
@@ -95,3 +97,8 @@ def test_fast_parser_matches_meta_parser():
     raw += "".join((fixtures / "regression_flowers.txt").read_text(encoding="utf-8").splitlines(True)[:5])
 
     assert _as_dict(sam.parse_tracks(raw, "x")) == _as_dict(sam.parse_tracks_strict(raw, "x"))
+
+
+def test_cost_estimate_follows_meta_pricing():
+    assert sam.estimate_cost(9000, 2) == pytest.approx(3.6)
+    assert sam.estimate_cost(10, 1) == pytest.approx(0.01)

@@ -57,3 +57,9 @@ def test_moving_between_two_flowers_gives_one_visit_each():
 def test_threshold_is_configurable():
     insect = track("i1", "insect", perched(range(10, 12)))
     assert len(find_visits([insect], [FLOWER], FPS, VisitRule(min_duration_s=0.2))) == 1
+
+
+def test_flower_missing_for_a_few_frames_keeps_the_visit():
+    flower = track("f1", "flower", {f: (100, 100, 200, 200) for f in range(100) if f not in (12, 13)})
+    insect = track("i1", "insect", perched(range(10, 15)))
+    assert [(v.start_frame, v.end_frame) for v in find_visits([insect], [flower], FPS)] == [(10, 14)]

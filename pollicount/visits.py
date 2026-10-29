@@ -56,11 +56,20 @@ def _speeds(insect: Track, fps: float) -> dict[int, float]:
     return speeds
 
 
-def _host(insect: Track, frame: int, flowers: list[Track], rule: VisitRule) -> str | None:
+def _nearest_box(track: Track, frame: int, max_gap: int):
+    """The box at ``frame``, or the closest one within ``max_gap`` frames: flowers barely move."""
+    for d in range(max_gap + 1):
+        box = track.boxes.get(frame - d) or track.boxes.get(frame + d)
+        if box:
+            return box
+    return None
+
+
+def _host(insect: Track, frame: int, flowers: list[Track], rule: VisitRule, max_gap: int) -> str | None:
     box = insect.boxes[frame]
     best, best_inside = None, rule.min_inside
     for flower in flowers:
-        flower_box = flower.boxes.get(frame)
+        flower_box = _nearest_box(flower, frame, max_gap)
         if flower_box is None:
             continue
         inside = box.inside_fraction(flower_box)
@@ -77,7 +86,7 @@ def find_visits(insects: list[Track], flowers: list[Track], fps: float, rule: Vi
         speeds = _speeds(insect, fps)
         runs: list[list] = []  # [flower_id, start, end]
         for frame in insect.frames:
-            host = _host(insect, frame, flowers, rule) if speeds[frame] <= rule.max_speed else None
+            host = _host(insect, frame, flowers, rule, max_gap) if speeds[frame] <= rule.max_speed else None
             if host is None:
                 continue
             last = runs[-1] if runs else None

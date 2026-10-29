@@ -20,6 +20,7 @@ phone video
 | adapters | `sam`, `classify`, `video` | core, one external service or tool each | business rules (thresholds, counting) |
 | orchestration | `pipeline` | core, adapters | thresholds or service details |
 | entry points | `cli`, `server`, `web/` | `pipeline` | logic that is not wiring or presentation |
+| evaluation | `evaluation` | core, annotation files | anything the product needs at runtime |
 
 Dependencies only point down: entry points -> `pipeline` -> adapters -> core.
 The web app draws the tracks over the video in the browser from `Analysis.to_json()`, so no video is re-encoded.

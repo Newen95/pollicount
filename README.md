@@ -48,9 +48,22 @@ dependency audit, secret scan): `uv run python scripts/check.py`. See [docs/ARCH
 
 Work in progress.
 
+## Evaluation
+
+`pollicount evaluate` scores a run against the annotated insect tracks of the Monash dataset: visit precision
+and recall, insects found and classification accuracy. Annotators start a new visit when an insect hops off a
+flower for a fraction of a second; the evaluation merges such hops (under 0.2 s) so both sides count the same way.
+
+With the annotated tracks themselves as input, the visit rule reaches F1 0.90 on test video T1: the ceiling
+for any tracker with this rule.
+
 ## Credits
 
 Uses Meta's Segment Anything Model (SAM 3.1) through the Meta Model API, and `meta-sam-parser` (SAM License).
+
+Evaluation data: Ratnayake, M. N., Amarathunga, D. C., Zaman, A., Dyer, A. G., Dorin, A. (2022).
+Spatial Monitoring and Insect Behavioural Analysis Dataset. Monash University. CC BY 4.0.
+https://doi.org/10.26180/21533760
 
 ## License
 

@@ -20,6 +20,13 @@ SAM_MODEL = "sam-3.1"
 API_KEY_ENV = "MODEL_API_KEY"
 UPLOAD_TTL_S = 24 * 3600
 """Volunteer videos are deleted from Meta's storage after a day."""
+PRICE_PER_FRAME_USD = 0.20 / 1000
+MIN_BILLED_FRAMES = 50
+
+
+def estimate_cost(frames: int, concepts: int) -> float:
+    return concepts * max(frames, MIN_BILLED_FRAMES) * PRICE_PER_FRAME_USD
+
 
 _FRAME = re.compile(r"<(\d+)f>(.*)")
 # Mask payloads never contain "|", so a box token cannot appear inside one.
