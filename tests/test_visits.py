@@ -1,4 +1,5 @@
 from pollicount.visits import VisitRule, find_visits
+
 from samples import track
 
 FPS = 10

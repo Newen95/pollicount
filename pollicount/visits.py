@@ -69,7 +69,8 @@ def _host(insect: Track, frame: int, flowers: list[Track], rule: VisitRule) -> s
     return best
 
 
-def find_visits(insects: list[Track], flowers: list[Track], fps: float, rule: VisitRule = VisitRule()) -> list[Visit]:
+def find_visits(insects: list[Track], flowers: list[Track], fps: float, rule: VisitRule | None = None) -> list[Visit]:
+    rule = rule or VisitRule()
     max_gap = round(rule.max_gap_s * fps)
     visits: list[Visit] = []
     for insect in insects:

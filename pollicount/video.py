@@ -33,9 +33,22 @@ class VideoInfo:
 
 def probe(path: Path) -> VideoInfo:
     out = subprocess.run(
-        [_tool("ffprobe"), "-v", "error", "-select_streams", "v:0", "-count_packets",
-         "-show_entries", "stream=width,height,avg_frame_rate,nb_read_packets", "-of", "json", str(path)],
-        check=True, capture_output=True, text=True,
+        [
+            _tool("ffprobe"),
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-count_packets",
+            "-show_entries",
+            "stream=width,height,avg_frame_rate,nb_read_packets",
+            "-of",
+            "json",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout
     stream = json.loads(out)["streams"][0]
     return VideoInfo(
@@ -66,9 +79,21 @@ def crop(video: Path, frame: int, fps: float, box: Box, dst: Path, pad: float = 
     x, y = max(0, int(cx - side / 2)), max(0, int(cy - side / 2))
     dst.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        [_tool("ffmpeg"), "-y", "-loglevel", "error", "-ss", f"{frame / fps:.4f}", "-i", str(video),
-         "-frames:v", "1", "-vf", f"crop='min({int(side)},iw-{x})':'min({int(side)},ih-{y})':{x}:{y},scale={size}:-2",
-         str(dst)],
+        [
+            _tool("ffmpeg"),
+            "-y",
+            "-loglevel",
+            "error",
+            "-ss",
+            f"{frame / fps:.4f}",
+            "-i",
+            str(video),
+            "-frames:v",
+            "1",
+            "-vf",
+            f"crop='min({int(side)},iw-{x})':'min({int(side)},ih-{y})':{x}:{y},scale={size}:-2",
+            str(dst),
+        ],
         check=True,
     )
     return dst

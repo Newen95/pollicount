@@ -6,7 +6,9 @@ from pollicount.visits import Visit
 
 
 def test_parse_reply_reads_json_inside_fences():
-    reply = 'Thinking...\n```json\n{"group": "Hoverflies", "confidence": 0.65, "visible_cues": ["one pair of wings"]}\n```'
+    reply = (
+        'Thinking...\n```json\n{"group": "Hoverflies", "confidence": 0.65, "visible_cues": ["one pair of wings"]}\n```'
+    )
     result = parse_reply(reply)
 
     assert (result.group, result.confidence, result.cues) == ("hoverflies", 0.65, ["one pair of wings"])
@@ -26,7 +28,12 @@ def test_parse_reply_clamps_confidence():
 
 
 def test_fit_count_drops_non_insects_and_counts_per_group(tmp_path):
-    visits = [Visit("1", "f", 0, 9, 10), Visit("1", "f", 30, 39, 10), Visit("2", "f", 5, 9, 10), Visit("3", "f", 0, 9, 10)]
+    visits = [
+        Visit("1", "f", 0, 9, 10),
+        Visit("1", "f", 30, 39, 10),
+        Visit("2", "f", 5, 9, 10),
+        Visit("3", "f", 0, 9, 10),
+    ]
     groups = {
         "1": Classification("honeybees", 0.9),
         "2": Classification("hoverflies", 0.7),

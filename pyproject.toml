@@ -14,7 +14,11 @@ dependencies = [
 pollicount = "pollicount.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "pip-audit>=2.10.1",
+    "pytest>=8",
+    "ruff>=0.17.3",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -22,3 +26,18 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+"pollicount/video.py" = ["S603"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pollicount"]
+known-local-folder = ["samples"]
