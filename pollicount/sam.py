@@ -17,7 +17,7 @@ from .geometry import Box, Track
 
 META_BASE_URL = "https://api.meta.ai/v1"
 SAM_MODEL = "sam-3.1"
-API_KEY_ENV = "MODEL_API_KEY"
+API_KEY_ENV = "META_API_KEY"
 UPLOAD_TTL_S = 24 * 3600
 """Volunteer videos are deleted from Meta's storage after a day."""
 PRICE_PER_FRAME_USD = 0.20 / 1000

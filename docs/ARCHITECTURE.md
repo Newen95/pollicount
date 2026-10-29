@@ -39,7 +39,7 @@ Each adapter takes an optional `client` so tests inject a fake instead of callin
 
 ## Security
 
-- API keys only come from environment variables (`MODEL_API_KEY`, `BASETEN_API_KEY`), never from files or arguments.
+- API keys only come from environment variables (`META_API_KEY`, `BASETEN_API_KEY`), never from files or arguments.
 - Videos uploaded to the Meta Model API expire after 24 h (`sam.UPLOAD_TTL_S`).
 - External tools run with argument lists, never through a shell.
 - The `glimmer` backend expects `llama-server` bound to `127.0.0.1`, never exposed on the network.

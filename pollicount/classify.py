@@ -37,7 +37,7 @@ class Backend:
 
 
 BACKENDS = {
-    "spark": Backend("spark", "https://api.meta.ai/v1", "muse-spark-1.3", "MODEL_API_KEY"),
+    "spark": Backend("spark", "https://api.meta.ai/v1", "muse-spark-1.3", "META_API_KEY"),
     "spark-open": Backend(
         "spark-open", "https://inference.baseten.co/v1", "meta-models/muse-spark-open-1026", "BASETEN_API_KEY"
     ),
