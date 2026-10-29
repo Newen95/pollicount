@@ -1,7 +1,7 @@
 import json
 
 from pollicount import export
-from pollicount.classify import NOT_AN_INSECT, Classification, parse_reply
+from pollicount.classify import BACKENDS, NO_ANSWER, NOT_AN_INSECT, Classification, classify_crops, parse_reply
 from pollicount.visits import Visit
 
 
@@ -51,3 +51,34 @@ def test_fit_count_counts_each_insect_once_and_drops_non_insects(tmp_path):
     export.write(record, tmp_path)
     assert json.loads((tmp_path / "fit_count.json").read_text())["total_visits"] == 3
     assert (tmp_path / "fit_count.csv").read_text().splitlines()[1].endswith(",2")
+
+
+class _Replies:
+    def __init__(self, *replies):
+        self.calls, self._replies = [], list(replies)
+        self.chat = type("Chat", (), {"completions": type("C", (), {"create": self._create})()})()
+
+    def _create(self, **kwargs):
+        self.calls.append(kwargs)
+        content, finish = self._replies.pop(0)
+        message = type("M", (), {"content": content})()
+        return type("R", (), {"choices": [type("Ch", (), {"message": message, "finish_reason": finish})()]})()
+
+
+def test_reply_cut_by_reasoning_is_retried_with_a_bigger_budget(tmp_path):
+    crop = tmp_path / "c.png"
+    crop.write_bytes(b"png")
+    client = _Replies(("", "length"), ('{"group": "wasps", "confidence": 0.7}', "stop"))
+    result = classify_crops([crop], BACKENDS["spark-open"], client)
+
+    assert result.group == "wasps"
+    assert [c["max_tokens"] for c in client.calls] == [8000, 16000]
+    assert client.calls[0]["reasoning_effort"] == "medium"
+
+
+def test_no_answer_is_flagged_as_unverified(tmp_path):
+    crop = tmp_path / "c.png"
+    crop.write_bytes(b"png")
+    result = classify_crops([crop], BACKENDS["glimmer"], _Replies(("", "length"), ("", "length")))
+
+    assert result.cues == [NO_ANSWER] and result.confidence == 0.0

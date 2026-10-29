@@ -34,18 +34,21 @@ class Backend:
     base_url: str
     model: str
     api_key_env: str | None
+    reasoning_effort: str | None = None
+    """Muse Spark Open always reasons first; "medium" leaves room for the answer and judges well."""
 
 
 BACKENDS = {
     "spark": Backend("spark", "https://api.meta.ai/v1", "muse-spark-1.3", "META_API_KEY"),
     "spark-open": Backend(
-        "spark-open", "https://inference.baseten.co/v1", "meta-models/muse-spark-open-1026", "BASETEN_API_KEY"
+        "spark-open", "https://inference.baseten.co/v1", "meta-models/muse-spark-open-1026", "BASETEN_API_KEY", "medium"
     ),
     "spark-open-fireworks": Backend(
         "spark-open-fireworks",
         "https://api.fireworks.ai/inference/v1",
         "accounts/fireworks/models/muse-spark-open",
         "FIREWORKS_API_KEY",
+        "medium",
     ),
     "glimmer": Backend("glimmer", "http://127.0.0.1:8089/v1", "muse-glimmer", None),
 }
@@ -88,20 +91,24 @@ def _image_part(path: Path) -> dict:
     return {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{encoded}"}}
 
 
-def classify_crops(crops: list[Path], backend: Backend, client=None) -> Classification:
+NO_ANSWER = "no answer"
+
+
+def classify_crops(crops: list[Path], backend: Backend, client=None, max_tokens: int = 8000) -> Classification:
+    """One request with every crop. A reply cut short by reasoning is retried once with twice the budget;
+    if it still has no answer, the track is marked unverified instead of being counted silently."""
     if client is None:
         from openai import OpenAI
 
         key = os.environ[backend.api_key_env] if backend.api_key_env else "none"
         client = OpenAI(base_url=backend.base_url, api_key=key)
-    response = client.chat.completions.create(
-        model=backend.model,
-        messages=[
-            {
-                "role": "user",
-                "content": [*(_image_part(c) for c in crops), {"type": "text", "text": PROMPT}],
-            }
-        ],
-        max_tokens=2000,
-    )
-    return parse_reply(response.choices[0].message.content or "")
+    extra = {"reasoning_effort": backend.reasoning_effort} if backend.reasoning_effort else {}
+    content = [*(_image_part(c) for c in crops), {"type": "text", "text": PROMPT}]
+    for budget in (max_tokens, 2 * max_tokens):
+        response = client.chat.completions.create(
+            model=backend.model, messages=[{"role": "user", "content": content}], max_tokens=budget, **extra
+        )
+        choice = response.choices[0]
+        if choice.message.content and choice.finish_reason != "length":
+            return parse_reply(choice.message.content)
+    return Classification("other insects", 0.0, [NO_ANSWER], choice.message.content or "")
