@@ -58,6 +58,14 @@ least 0.3 s (`--min-visit`), which
 leaves out insects flying past. The record gives distinct insects per group, as FIT Count expects, and keeps
 every visit (insect, flower, start, duration) for finer analyses. Spiders and caterpillars are not counted.
 
+## Known limits
+
+- **Moving camera.** FIT Count assumes a still phone on one patch. When the camera pans, everything moves in the
+  picture: a landed insect looks like it is flying, and flowers that just came into view are only partly found.
+  A visit that starts during a pan may be dated up to about half a second late, and flowers may be mixed up
+  there. Counts are not affected, and the app warns when the camera moved.
+- **Far, tiny insects.** SAM 3.1 does not find insects of about 30 pixels, filmed from far away (see Evaluation).
+
 ## Evaluation
 
 `pollicount evaluate` scores a run against the annotated insect tracks of the Monash dataset: visit precision
