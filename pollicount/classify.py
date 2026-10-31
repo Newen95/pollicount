@@ -57,7 +57,8 @@ PROMPT = f"""These crops show the same insect, tracked in a video of a flower pa
 Classify it into exactly one FIT Count group: {", ".join(FIT_GROUPS)}.
 As on the official FIT Count form: hoverflies include non-typical, slender or dark hoverflies; wasps include
 ichneumon wasps; beetles are larger than 3 mm, and "small insects" are shorter than 3 mm.
-Answer "{NOT_AN_INSECT}" for debris, a leaf, a petal, a shadow, a spider or a caterpillar: FIT Count does not count them.
+Answer "{NOT_AN_INSECT}" for debris, a leaf, a petal, a shadow, a spider or a caterpillar:
+FIT Count does not count them.
 Reply with JSON only: {{"group": "...", "confidence": 0.0, "visible_cues": ["..."]}}"""
 
 
