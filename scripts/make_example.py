@@ -33,6 +33,8 @@ def main() -> None:
     folder = args.out / args.id
     folder.mkdir(parents=True, exist_ok=True)
     shutil.copy(analysis.clip, folder / "clip.mp4")
+    shutil.rmtree(folder / "crops", ignore_errors=True)
+    shutil.copytree(work / "crops", folder / "crops", dirs_exist_ok=True)
     (folder / "result.json").write_text(json.dumps(analysis.to_json()), encoding="utf-8")
     meta = {"title": args.title, "credit": args.credit, "license": args.license, "source": args.source}
     (folder / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")

@@ -80,6 +80,7 @@ class Job:
 
 _EXAMPLE_ID = re.compile(r"[a-z0-9-]{1,40}")
 _JOB_ID = re.compile(r"[0-9a-f]{32}")
+_CROP_NAME = re.compile(r"[A-Za-z0-9-]{1,40}_\d{1,7}\.png")
 RESTARTED = "The server restarted during this analysis. Upload the video again."
 
 
@@ -222,6 +223,13 @@ def create_app(
         if not clip.exists():
             raise HTTPException(409, "video not ready")
         return FileResponse(clip, media_type="video/mp4")
+
+    @app.get("/api/analyses/{job_id}/crops/{name}")
+    def read_crop(job_id: str, name: str) -> FileResponse:
+        crop = get_job(job_id).dir / "crops" / name
+        if not _CROP_NAME.fullmatch(name) or not crop.is_file():
+            raise HTTPException(404, "crop not found")
+        return FileResponse(crop, media_type="image/png")
 
     if WEB_DIR.exists():
         app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")

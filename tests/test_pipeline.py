@@ -65,3 +65,12 @@ def test_analyse_counts_visits_and_classifies_only_visiting_insects(source: Path
 def test_analyse_without_classifier_keeps_unknown_group(source: Path, tmp_path: Path):
     analysis = pipeline.analyse(source, tmp_path / "work", fake_tracker, None)
     assert analysis.record["counts"]["other insects"] == 1
+
+
+def test_result_lists_the_crops_shown_to_the_classifier(source: Path, tmp_path: Path):
+    analysis = pipeline.analyse(source, tmp_path / "work", fake_tracker, lambda crops: Classification("wasps", 0.8))
+    insects = {i["id"]: i for i in analysis.to_json()["insects"]}
+
+    assert len(insects["1"]["crops"]) == 3
+    assert all((tmp_path / "work" / "crops" / name).is_file() for name in insects["1"]["crops"])
+    assert insects["2"]["crops"] == []

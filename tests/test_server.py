@@ -135,3 +135,13 @@ def test_analyses_survive_a_server_restart(tmp_path: Path, video_bytes: bytes):
     assert restarted.get(f"/api/analyses/{job_id}").json()["status"] == "done"
     assert restarted.get(f"/api/analyses/{job_id}/result").json()["record"]["insects"] == 1
     assert restarted.get(f"/api/analyses/{'f' * 32}").json()["error"] == server.RESTARTED
+
+
+def test_crops_are_served_and_names_are_checked(client: TestClient, video_bytes: bytes):
+    job_id = client.post("/api/analyses", files={"file": ("a.webm", video_bytes, "video/webm")}).json()["id"]
+    name = client.get(f"/api/analyses/{job_id}/result").json()["insects"][0]["crops"][0]
+
+    crop = client.get(f"/api/analyses/{job_id}/crops/{name}")
+    assert crop.status_code == 200 and crop.headers["content-type"] == "image/png"
+    assert client.get(f"/api/analyses/{job_id}/crops/..%2Fjob.json").status_code == 404
+    assert client.get(f"/api/analyses/{job_id}/crops/job.json").status_code == 404

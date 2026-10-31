@@ -36,6 +36,8 @@ class Analysis:
     visits: list[Visit]
     groups: dict[str, classify.Classification]
     record: dict
+    crops: dict[str, list[str]] = field(default_factory=dict)
+    """Crop file names (in ``work_dir/crops``) shown to the classifier, per insect."""
 
     def to_json(self) -> dict:
         """Everything the web app needs to draw tracks over the video and show the record."""
@@ -53,6 +55,7 @@ class Analysis:
                 "group": group.group if group else None,
                 "confidence": group.confidence if group else None,
                 "cues": group.cues if group else [],
+                "crops": self.crops.get(track.object_id, []),
                 "boxes": boxes(track),
             }
 
@@ -115,17 +118,19 @@ def analyse(
     visits = find_visits(insects, flowers, info.fps, settings.rule)
 
     groups: dict[str, classify.Classification] = {}
+    crops: dict[str, list[str]] = {}
     visiting = [t for t in insects if any(v.insect_id == t.object_id for v in visits)]
     if classifier:
         for i, insect in enumerate(visiting):
             report("identifying insects", 0.75 + 0.2 * i / len(visiting))
-            crops = [
+            paths = [
                 video.crop(clip, f, info.fps, insect.boxes[f], work_dir / "crops" / f"{insect.object_id}_{f}.png")
                 for f in insect.best_frames(settings.crops_per_insect)
             ]
-            groups[insect.object_id] = classifier(crops)
+            groups[insect.object_id] = classifier(paths)
+            crops[insect.object_id] = [p.name for p in paths]
 
     record = export.fit_count(visits, groups, info.duration_s, len(flowers))
     export.write(record, work_dir)
     report("done", 1.0)
-    return Analysis(clip, info, insects, flowers, visits, groups, record)
+    return Analysis(clip, info, insects, flowers, visits, groups, record, crops)
