@@ -6,6 +6,7 @@
 phone video
   -> video.to_sam_mp4        H.264 MP4, fps and size chosen for cost
   -> sam.track  x2           "insect" and "flower" tracks (SAM 3.1, cached)
+  -> flowers.group_touching  touching flowers merged into one head (umbels, spikes)
   -> visits.find_visits      insect still on a flower for >= 0.3 s
   -> video.crop              best frames of each visiting insect
   -> classify.classify_crops FIT Count group, or "not an insect"
@@ -16,7 +17,7 @@ phone video
 
 | Layer | Modules | May use | Never |
 |---|---|---|---|
-| core | `geometry`, `visits`, `export` | standard library, other core modules | network, subprocess, environment variables |
+| core | `geometry`, `flowers`, `visits`, `export` | standard library, other core modules | network, subprocess, environment variables |
 | adapters | `sam`, `classify`, `video` | core, one external service or tool each | business rules (thresholds, counting) |
 | orchestration | `pipeline` | core, adapters | thresholds or service details |
 | entry points | `cli`, `server`, `web/` | `pipeline` | logic that is not wiring or presentation |

@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import classify, export, sam, video
+from . import flowers as flower_units
 from .geometry import Track
 from .visits import Visit, VisitRule, find_visits
 
@@ -25,6 +26,8 @@ class Settings:
     flower_prompt: str = "flower"
     rule: VisitRule = field(default_factory=VisitRule)
     crops_per_insect: int = 3
+    group_flowers: bool = True
+    """Merge touching flowers into one head (umbels, spikes), the unit FIT Count counts."""
 
 
 @dataclass
@@ -113,6 +116,8 @@ def analyse(
     insects = tracker(clip, settings.insect_prompt, frames_done("tracking insects", 0.1))
     report("tracking flowers", 0.4)
     flowers = tracker(clip, settings.flower_prompt, frames_done("tracking flowers", 0.4))
+    if settings.group_flowers:
+        flowers = flower_units.group_touching(flowers)
 
     report("finding visits", 0.7)
     visits = find_visits(insects, flowers, info.fps, settings.rule)
