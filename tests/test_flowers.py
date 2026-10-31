@@ -46,3 +46,10 @@ def test_flowers_seen_at_different_times_are_compared_in_the_scene():
 
     assert len(group_touching([a, b], offsets=offsets)) == 2
     assert len(group_touching([a, b])) == 1
+
+
+def test_no_filling_across_a_camera_move():
+    a = track("1", "flower", {0: (0, 0, 100, 100), 9: (0, 0, 100, 100)})
+    head = group_touching([a], max_fill=10, camera_moves=[(3, 5)])[0]
+
+    assert 2 in head.boxes and 6 in head.boxes and 4 not in head.boxes

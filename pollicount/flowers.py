@@ -36,12 +36,23 @@ def _touch(a: Box, b: Box, gap_ratio: float) -> bool:
     return a.left - gap <= b.right and b.left - gap <= a.right and a.top - gap <= b.bottom and b.top - gap <= a.bottom
 
 
-def _box_at(track: Track, frame: int, offsets: Offsets | None, max_fill: int, size: tuple[int, int] | None):
-    """The flower's box at ``frame``, or its nearest box within ``max_fill`` frames moved with the camera."""
+def _box_at(
+    track: Track,
+    frame: int,
+    offsets: Offsets | None,
+    max_fill: int,
+    size: tuple[int, int] | None,
+    camera_moves: list[tuple[int, int]],
+):
+    """The flower's box at ``frame``, or its nearest box within ``max_fill`` frames moved with the camera.
+    A box is never carried across a camera move: the flower is no longer where it was."""
     if frame in track.boxes:
         return track.boxes[frame]
     for d in range(1, max_fill + 1):
         for source in (frame - d, frame + d):
+            first, last = min(frame, source), max(frame, source)
+            if any(start <= last and first <= end for start, end in camera_moves):
+                continue
             if source in track.boxes:
                 (fx, fy), (sx, sy) = _offset(offsets, frame), _offset(offsets, source)
                 box = _shift(track.boxes[source], fx - sx, fy - sy)
@@ -58,11 +69,13 @@ def group_touching(
     offsets: Offsets | None = None,
     size: tuple[int, int] | None = None,
     max_fill: int = 0,
+    camera_moves: list[tuple[int, int]] | None = None,
 ) -> list[Track]:
     """Merge flowers whose boxes touch, allowing a gap of ``gap_ratio`` times the smaller flower.
 
     ``max_fill`` frames bridge a flower that is missing from its head for a moment, using
-    ``offsets`` to follow the camera and ``size`` (width, height) to clip at the frame edges.
+    ``offsets`` to follow the camera and ``size`` (width, height) to clip at the frame edges, but never
+    across ``camera_moves`` (frame ranges).
     """
     flowers = [t for t in flowers if t.boxes]
     parent = {t.object_id: t.object_id for t in flowers}
@@ -88,7 +101,7 @@ def group_touching(
         frames = range(min(min(t.boxes) for t in group), max(max(t.boxes) for t in group) + 1)
         boxes: dict[int, Box] = {}
         for frame in frames:
-            parts = [b for t in group if (b := _box_at(t, frame, offsets, max_fill, size))]
+            parts = [b for t in group if (b := _box_at(t, frame, offsets, max_fill, size, camera_moves or []))]
             if parts:
                 boxes[frame] = Box(
                     min(b.left for b in parts),

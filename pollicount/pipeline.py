@@ -123,7 +123,12 @@ def analyse(
     flowers = tracker(clip, settings.flower_prompt, frames_done("tracking flowers", 0.4))
     if settings.group_flowers:
         # Camera offsets are left out: measured on blurred pans they split heads more than they help.
-        flowers = flower_units.group_touching(flowers, size=(info.width, info.height), max_fill=round(2 * info.fps))
+        flowers = flower_units.group_touching(
+            flowers,
+            size=(info.width, info.height),
+            max_fill=round(2 * info.fps),
+            camera_moves=[(round(a * info.fps), round(b * info.fps)) for a, b in camera_moves],
+        )
 
     report("finding visits", 0.7)
     visits = find_visits(insects, flowers, info.fps, settings.rule)
