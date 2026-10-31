@@ -79,6 +79,32 @@ class Job:
 
 
 _EXAMPLE_ID = re.compile(r"[a-z0-9-]{1,40}")
+_JOB_ID = re.compile(r"[0-9a-f]{32}")
+RESTARTED = "The server restarted during this analysis. Upload the video again."
+
+
+def save(job: Job) -> None:
+    """Analyses live on disk too, so a server restart does not lose them."""
+    state = {"created": job.created, "status": job.status, "error": job.error}
+    if job.result is not None:
+        (job.dir / "result.json").write_text(json.dumps(job.result), encoding="utf-8")
+    (job.dir / "job.json").write_text(json.dumps(state), encoding="utf-8")
+
+
+def load_jobs(data_dir: Path) -> dict[str, Job]:
+    jobs = {}
+    for state_file in data_dir.glob("*/job.json"):
+        folder = state_file.parent
+        if not _JOB_ID.fullmatch(folder.name):
+            continue
+        state = json.loads(state_file.read_text(encoding="utf-8"))
+        job = Job(folder.name, folder, state["created"], state["status"], state["status"], 1.0, state["error"])
+        if job.status == "done" and (folder / "result.json").is_file():
+            job.result = json.loads((folder / "result.json").read_text(encoding="utf-8"))
+        elif job.status != "failed":
+            job.status, job.stage, job.error = "failed", "failed", RESTARTED
+        jobs[job.id] = job
+    return jobs
 
 
 def load_examples(examples_dir: Path) -> dict[str, Job]:
@@ -104,7 +130,7 @@ def create_app(
     limits = limits or Limits()
     app = FastAPI(title="PolliCount")
     data_dir.mkdir(parents=True, exist_ok=True)
-    jobs: dict[str, Job] = load_examples(data_dir / "examples")
+    jobs: dict[str, Job] = {**load_examples(data_dir / "examples"), **load_jobs(data_dir)}
     lock = threading.Lock()
 
     def purge_old_jobs() -> None:
@@ -125,6 +151,7 @@ def create_app(
             job.stage, job.progress = stage, value
 
         job.status = "running"
+        save(job)
         try:
             duration = video.probe(source).duration_s
             if duration > limits.max_video_s:
@@ -140,6 +167,7 @@ def create_app(
             job.status, job.error = "failed", user_message(error)
         finally:
             source.unlink(missing_ok=True)
+            save(job)
 
     def get_job(job_id: str) -> Job:
         job = jobs.get(job_id)

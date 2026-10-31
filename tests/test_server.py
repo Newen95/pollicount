@@ -120,3 +120,18 @@ def test_examples_are_listed_served_and_never_purged(tmp_path: Path, video_bytes
     assert client.get("/api/analyses/hoverfly").json()["example"]["title"] == "Hoverfly on wild carrot"
     assert client.get("/api/analyses/hoverfly/result").json() == {"record": {"insects": 1}}
     assert client.get("/api/analyses/hoverfly/video").content == b"mp4"
+
+
+def test_analyses_survive_a_server_restart(tmp_path: Path, video_bytes: bytes):
+    def make():
+        return TestClient(server.create_app(tmp_path / "data", lambda cache: fake_tracker, None))
+
+    job_id = make().post("/api/analyses", files={"file": ("a.webm", video_bytes, "video/webm")}).json()["id"]
+    interrupted = tmp_path / "data" / ("f" * 32)
+    interrupted.mkdir()
+    (interrupted / "job.json").write_text('{"created": 0, "status": "running", "error": null}', encoding="utf-8")
+
+    restarted = make()
+    assert restarted.get(f"/api/analyses/{job_id}").json()["status"] == "done"
+    assert restarted.get(f"/api/analyses/{job_id}/result").json()["record"]["insects"] == 1
+    assert restarted.get(f"/api/analyses/{'f' * 32}").json()["error"] == server.RESTARTED
