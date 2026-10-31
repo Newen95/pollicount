@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import classify, export, sam, video
+from . import classify, export, motion, sam, video
 from . import flowers as flower_units
 from .geometry import Track
 from .visits import Visit, VisitRule, find_visits
@@ -41,6 +41,8 @@ class Analysis:
     record: dict
     crops: dict[str, list[str]] = field(default_factory=dict)
     """Crop file names (in ``work_dir/crops``) shown to the classifier, per insect."""
+    camera_moves: list[tuple[float, float]] = field(default_factory=list)
+    """Time ranges where the camera moved: flower identities are unreliable there."""
 
     def to_json(self) -> dict:
         """Everything the web app needs to draw tracks over the video and show the record."""
@@ -73,6 +75,7 @@ class Analysis:
             "flowers": [{"id": t.object_id, "boxes": boxes(t)} for t in self.flowers],
             "insects": [insect(t) for t in self.insects],
             "record": self.record,
+            "camera_moves": [list(m) for m in self.camera_moves],
         }
 
 
@@ -102,6 +105,7 @@ def analyse(
     report("preparing", 0.0)
     clip = video.to_sam_mp4(source, work_dir / "clip.mp4", fps=settings.fps, max_side=settings.max_side)
     info = video.probe(clip)
+    camera_moves = motion.camera_moves(clip, info.width, info.height, info.fps)
 
     def frames_done(stage: str, start: float) -> Callable[[int], None]:
         furthest = [0]
@@ -138,4 +142,4 @@ def analyse(
     record = export.fit_count(visits, groups, info.duration_s, len(flowers))
     export.write(record, work_dir)
     report("done", 1.0)
-    return Analysis(clip, info, insects, flowers, visits, groups, record, crops)
+    return Analysis(clip, info, insects, flowers, visits, groups, record, crops, camera_moves)

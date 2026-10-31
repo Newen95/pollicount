@@ -74,3 +74,4 @@ def test_result_lists_the_crops_shown_to_the_classifier(source: Path, tmp_path: 
     assert len(insects["1"]["crops"]) == 3
     assert all((tmp_path / "work" / "crops" / name).is_file() for name in insects["1"]["crops"])
     assert insects["2"]["crops"] == []
+    assert isinstance(analysis.to_json()["camera_moves"], list)

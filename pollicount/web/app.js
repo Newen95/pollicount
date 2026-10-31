@@ -161,6 +161,9 @@ async function showResult(id) {
   $("total-label").textContent = record.insects === 1 ? "pollinator" : "pollinators";
   const minutes = record.duration_min < 1 ? `${Math.round(record.duration_min * 60)} s` : `${record.duration_min} min`;
   $("summary").textContent = summary(record, result.insects.length, result.flowers.length, minutes, plural);
+  const moves = result.camera_moves ?? [];
+  $("camera-note").hidden = moves.length === 0;
+  $("camera-note").textContent = `The camera moved at ${moves.map(([start]) => timecode(start)).join(", ")}, so flowers may be mixed up there. For a FIT Count, keep the phone still on one patch.`;
   renderLedger(record);
   renderTimeline(record);
   const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });

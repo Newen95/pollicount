@@ -37,9 +37,22 @@ class MotionSettings:
 
 
 def frames(video: Path, width: int, height: int):
-    """Grayscale frames streamed from ffmpeg, without temporary files."""
+    """Grayscale frames streamed from ffmpeg at ``width`` x ``height``, without temporary files."""
     proc = subprocess.Popen(  # noqa: S603
-        [_tool("ffmpeg"), "-loglevel", "error", "-i", str(video), "-f", "rawvideo", "-pix_fmt", "gray", "-"],
+        [
+            _tool("ffmpeg"),
+            "-loglevel",
+            "error",
+            "-i",
+            str(video),
+            "-vf",
+            f"scale={width}:{height}",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "gray",
+            "-",
+        ],
         stdout=subprocess.PIPE,
     )
     size = width * height
@@ -127,3 +140,33 @@ def detect(video: Path, width: int, height: int, fps: float, settings: MotionSet
         if found:
             detections[i] = found
     return link(detections, fps, s)
+
+
+def camera_moves(
+    video: Path, width: int, height: int, fps: float, threshold: float = 0.01, min_s: float = 0.3
+) -> list[tuple[float, float]]:
+    """Time ranges where the whole picture shifts, i.e. the camera moved.
+
+    Consecutive frames are compared by phase correlation on a 160 px wide copy; a shift above
+    ``threshold`` of the width per frame, held for ``min_s``, is a camera move.
+    """
+    small_w = 160
+    small_h = max(2, round(height * small_w / width / 2) * 2)
+    window = cv2.createHanningWindow((small_w, small_h), cv2.CV_32F)
+    moving: list[int] = []
+    previous = None
+    for i, frame in enumerate(frames(video, small_w, small_h)):
+        current = frame.astype(np.float32)
+        if previous is not None:
+            (dx, dy), _ = cv2.phaseCorrelate(previous, current, window)
+            if np.hypot(dx, dy) / small_w > threshold:
+                moving.append(i)
+        previous = current
+
+    ranges: list[tuple[float, float]] = []
+    for i in moving:
+        if ranges and i - round(ranges[-1][1] * fps) <= 1:
+            ranges[-1] = (ranges[-1][0], i / fps)
+        else:
+            ranges.append((i / fps, i / fps))
+    return [(round(a, 2), round(b, 2)) for a, b in ranges if b - a >= min_s]
