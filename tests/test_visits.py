@@ -78,3 +78,10 @@ def test_flower_holding_the_centre_wins():
     visits = find_visits([track("i1", "insect", perched(range(10, 15), x=145, y=145))], [big, small], FPS)
 
     assert [v.flower_id for v in visits] == ["small"]
+
+
+def test_insect_standing_on_top_of_a_flower_counts_by_its_legs():
+    side_view = {f: (120, 20, 180, 120) for f in range(10, 15)}  # body above, legs on the top of the flower
+    visits = find_visits([track("i1", "insect", side_view)], [FLOWER], FPS)
+
+    assert [(v.start_frame, v.end_frame) for v in visits] == [(10, 14)]

@@ -1,9 +1,9 @@
 """Visit detection: an insect that stays on the same flower long enough.
 
-A frame counts as "on a flower" when the centre of the insect lies inside the flower box, or most of
-the insect box does, and the insect is nearly still. The centre matters for close-ups, where open
-wings stick out of the flower. Short dropouts (SAM losing the
-insect for a few frames) are bridged so one landing is not split in two.
+A frame counts as "on a flower" when the insect is nearly still and its centre, a third of its box, or
+half of the bottom third of its box (where the legs are in a side view) lies inside the flower box.
+Close-ups need the last two: open wings and the body stand above the flower the legs are touching.
+Short dropouts (SAM losing the insect for a few frames) are bridged so one landing is not split in two.
 """
 
 from __future__ import annotations
@@ -11,13 +11,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import hypot
 
-from .geometry import Track
+from .geometry import Box, Track
 
 
 @dataclass(frozen=True)
 class VisitRule:
     min_inside: float = 0.3
     """Share of the insect box inside the flower box that counts as landed, even off-centre."""
+    min_legs_inside: float = 0.5
+    """Share of the bottom third of the insect box inside the flower box that counts as landed."""
     max_speed: float = 2.0
     """Insect speed limit, in insect diagonals per second."""
     min_duration_s: float = 0.3
@@ -67,17 +69,21 @@ def _nearest_box(track: Track, frame: int, max_gap: int):
 
 
 def _host(insect: Track, frame: int, flowers: list[Track], rule: VisitRule, max_gap: int) -> str | None:
-    """The flower the insect sits on: one holding its centre first, then the one holding most of it."""
+    """The flower the insect sits on: one holding its centre first, then the one holding most of it,
+    then the smallest (the most precise)."""
     box = insect.boxes[frame]
     cx, cy = box.center
-    best, best_key = None, (False, rule.min_inside)
+    legs = Box(box.left, box.bottom - box.height / 3, box.right, box.bottom)
+    best, best_key = None, None
     for flower in flowers:
         flower_box = _nearest_box(flower, frame, max_gap)
         if flower_box is None:
             continue
         centred = flower_box.left <= cx < flower_box.right and flower_box.top <= cy < flower_box.bottom
-        key = (centred, box.inside_fraction(flower_box))
-        if (centred or key[1] >= rule.min_inside) and key >= best_key:
+        inside = box.inside_fraction(flower_box)
+        landed = centred or inside >= rule.min_inside or legs.inside_fraction(flower_box) >= rule.min_legs_inside
+        key = (centred, inside, -flower_box.area)
+        if landed and (best_key is None or key > best_key):
             best, best_key = flower.object_id, key
     return best
 
