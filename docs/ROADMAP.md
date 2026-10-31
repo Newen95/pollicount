@@ -9,14 +9,16 @@ Each level must be shippable on its own: if time runs out, the previous level is
 
 ## Level 1, MVP (Sat 31 Oct)
 
-- [ ] Real pipeline run on 2-3 videos: SAM 3.1 tracking + Muse Spark Open classification, costs logged
+- [x] Real pipeline run: SAM 3.1 tracking + Muse Spark Open classification (close-up video), costs logged
 - [ ] Annotated video: boxes, group labels, visit counter
-- [ ] FastAPI backend: upload, background analysis, progress, results
-- [ ] Web app: upload or film, live progress, annotated video, FIT Count summary
-- [ ] Deployed on Modal with a public URL, works on a phone
+- [x] FastAPI backend: upload, background analysis, progress, results
+- [x] Web app: upload or film, live progress, annotated video, FIT Count summary, examples
+- [x] Deployed on Modal with a public URL
+- [ ] Checked on a phone
 
 ## Level 2 (Mon 2 Nov)
 
+- [ ] Far-field mode: motion candidates verified by Muse Spark Open (T1: visit F1 0.62 vs 0 with SAM alone), in the pipeline
 - [ ] Accuracy measured on the Monash annotated videos (visit precision and recall, classification accuracy)
 - [ ] Backend comparison table: Muse Spark, Muse Spark Open, Muse Glimmer (accuracy, cost per video, time)
 - [ ] Volunteer review: correct a group, discard a false visit, totals update instantly

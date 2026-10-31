@@ -5,7 +5,7 @@ modal deploy deploy/modal_app.py    (from the repository root)
 
 import modal
 
-image = modal.Image.from_dockerfile("Dockerfile")
+image = modal.Image.from_dockerfile("Dockerfile").env({"POLLICOUNT_DATA": "/data"})
 data = modal.Volume.from_name("pollicount-data", create_if_missing=True)
 app = modal.App("pollicount", image=image)
 
