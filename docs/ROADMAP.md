@@ -22,6 +22,9 @@ Each level must be shippable on its own: if time runs out, the previous level is
 - [ ] Accuracy measured on the Monash annotated videos (visit precision and recall, classification accuracy)
 - [ ] Backend comparison table: Muse Spark, Muse Spark Open, Muse Glimmer (accuracy, cost per video, time)
 - [ ] Volunteer review: correct a group, discard a false visit, totals update instantly
+- [ ] Optional FIT Count record, following the official PoMS form field by field: date, time and place filled
+  automatically, weather from Open-Meteo, target flower and flower count proposed by the analysis, habitat,
+  patch context and identification level remembered on the phone; ready to copy into the PoMS app
 - [ ] Polished mobile experience: one-hand flow, PWA install, clear states for slow networks
 
 ## Level 3 (Tue 3 Nov)
