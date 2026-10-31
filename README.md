@@ -53,9 +53,8 @@ Work in progress.
 
 FIT Count asks volunteers to count every insect *sitting on or landing on* a target flower, each insect once.
 There is no agreed minimum duration in the literature, so PolliCount makes "landing" measurable: an insect
-counts when its centre, or at least a third of it, lies on a flower and it stays nearly still for at
-least 0.3 s (`--min-visit`), which
-leaves out insects flying past. The record gives distinct insects per group, as FIT Count expects, and keeps
+counts when it stays nearly still for at least 0.3 s (`--min-visit`) with its centre, a third of its body,
+or its legs (the bottom third of its box, for side views) on a flower. This leaves out insects flying past. The record gives distinct insects per group, as FIT Count expects, and keeps
 every visit (insect, flower, start, duration) for finer analyses. Spiders and caterpillars are not counted.
 
 ## Known limits
