@@ -23,32 +23,50 @@
 
   <main>
     <section id="start" class="screen">
-      <h1>Count the pollinators on a flower patch.</h1>
-      <p class="lede">Film one patch for up to ten minutes. PolliCount follows every insect, counts each landing on a flower and tells you who visited.</p>
-      <ol class="steps">
-        <li>Hold the phone still, a flower patch filling the frame.</li>
-        <li>Upload the video and follow the analysis as it runs.</li>
-        <li>See who visited which flower, then keep the record.</li>
-      </ol>
-      <div class="actions">
-        <label class="button primary">
-          <input type="file" accept="video/*" capture="environment" data-pick hidden>
-          Film a patch
-        </label>
-        <label class="button">
-          <input type="file" accept="video/*" data-pick hidden>
-          Choose a video
-        </label>
+      <div class="intro">
+        <h1>Count the pollinators on a flower patch.</h1>
+        <p class="lede">Film one patch for up to ten minutes. PolliCount follows every insect, counts each landing on a flower and tells you who visited.</p>
+        <div class="actions">
+          <label class="button primary">
+            <input type="file" accept="video/*" capture="environment" data-pick hidden>
+            Film a patch
+          </label>
+          <label class="button">
+            <input type="file" accept="video/*" data-pick hidden>
+            Choose a video
+          </label>
+        </div>
+        <p id="start-error" class="error" role="alert" hidden></p>
+        <section id="examples" class="examples" hidden>
+          <h2>No video at hand? Open an example</h2>
+          <ul id="examples-list"></ul>
+        </section>
+        <ol class="steps">
+          <li>Hold the phone still, a flower patch filling the frame.</li>
+          <li>Upload the video and follow the analysis as it runs.</li>
+          <li>See who visited which flower, then keep the record.</li>
+        </ol>
       </div>
-      <p id="start-error" class="error" role="alert" hidden></p>
-      <section id="examples" class="examples" hidden>
-        <h2>No video at hand? Open an example</h2>
-        <ul id="examples-list"></ul>
-      </section>
+      <figure class="drawer">
+        <ul>
+          <li><img src="plates/bumblebees.webp" alt="" width="512" height="512"><span>Bumblebees</span></li>
+          <li><img src="plates/honeybees.webp" alt="" width="512" height="512"><span>Honeybees</span></li>
+          <li><img src="plates/solitary-bees.webp" alt="" width="512" height="512"><span>Solitary bees</span></li>
+          <li><img src="plates/wasps.webp" alt="" width="512" height="512"><span>Wasps</span></li>
+          <li><img src="plates/hoverflies.webp" alt="" width="512" height="512"><span>Hoverflies</span></li>
+          <li><img src="plates/other-flies.webp" alt="" width="512" height="512"><span>Other flies</span></li>
+          <li><img src="plates/butterflies-moths.webp" alt="" width="512" height="512"><span>Butterflies and moths</span></li>
+          <li><img src="plates/beetles.webp" alt="" width="512" height="512"><span>Beetles</span></li>
+          <li><img src="plates/small-insects.webp" alt="" width="512" height="512"><span>Small insects</span></li>
+          <li><img src="plates/other-insects.webp" alt="" width="512" height="512"><span>Other insects</span></li>
+        </ul>
+        <figcaption>The ten groups PolliCount tells apart, as in the FIT Count protocol.</figcaption>
+      </figure>
     </section>
 
     <section id="analysis" class="screen" hidden>
       <div class="stage">
+        <p class="headline" id="headline" hidden></p>
         <div class="frame">
           <video id="video" playsinline muted loop></video>
           <canvas id="overlay" aria-hidden="true"></canvas>
@@ -77,7 +95,7 @@
           <p class="camera-note" id="camera-note" hidden></p>
           <ul class="ledger" id="ledger"></ul>
           <div class="actions">
-            <a class="button" id="download-json" download="pollicount.json">Download record</a>
+            <a class="button" id="download-json" download="pollicount.json">Download data (JSON)</a>
             <a class="button" href="./">Count another patch</a>
           </div>
         </div>
@@ -88,14 +106,5 @@
     </section>
   </main>
 
-  <dialog id="insect">
-    <form method="dialog">
-      <h2 id="insect-group"></h2>
-      <p id="insect-confidence"></p>
-      <ul id="insect-cues"></ul>
-      <p id="insect-visits"></p>
-      <button class="button" value="close">Close</button>
-    </form>
-  </dialog>
 </body>
 </html>

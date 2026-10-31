@@ -120,6 +120,9 @@ def test_examples_are_listed_served_and_never_purged(tmp_path: Path, video_bytes
     assert client.get("/api/analyses/hoverfly").json()["example"]["title"] == "Hoverfly on wild carrot"
     assert client.get("/api/analyses/hoverfly/result").json() == {"record": {"insects": 1}}
     assert client.get("/api/analyses/hoverfly/video").content == b"mp4"
+    assert client.get("/api/examples/hoverfly/poster").status_code == 404
+    (folder / "poster.jpg").write_bytes(b"jpg")
+    assert client.get("/api/examples/hoverfly/poster").content == b"jpg"
 
 
 def test_analyses_survive_a_server_restart(tmp_path: Path, video_bytes: bytes):

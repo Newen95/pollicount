@@ -11,7 +11,7 @@ import json
 import shutil
 from pathlib import Path
 
-from pollicount import pipeline
+from pollicount import pipeline, video
 
 
 def main() -> None:
@@ -36,6 +36,8 @@ def main() -> None:
     shutil.rmtree(folder / "crops", ignore_errors=True)
     shutil.copytree(work / "crops", folder / "crops", dirs_exist_ok=True)
     (folder / "result.json").write_text(json.dumps(analysis.to_json()), encoding="utf-8")
+    first = min((v.start_s for v in analysis.visits), default=0.0)
+    video.still(folder / "clip.mp4", first + 0.5, folder / "poster.jpg")
     meta = {"title": args.title, "credit": args.credit, "license": args.license, "source": args.source}
     (folder / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(f"{folder}: {analysis.record['insects']} insects, {analysis.record['total_visits']} visits")

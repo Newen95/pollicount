@@ -99,3 +99,28 @@ def crop(
         check=True,
     )
     return dst
+
+
+def still(video: Path, seconds: float, dst: Path, width: int = 480) -> Path:
+    """One JPEG frame, used as a poster for examples."""
+    subprocess.run(
+        [
+            _tool("ffmpeg"),
+            "-y",
+            "-loglevel",
+            "error",
+            "-ss",
+            f"{seconds:.2f}",
+            "-i",
+            str(video),
+            "-frames:v",
+            "1",
+            "-vf",
+            f"scale={width}:-2",
+            "-q:v",
+            "4",
+            str(dst),
+        ],
+        check=True,
+    )
+    return dst

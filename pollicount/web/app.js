@@ -127,17 +127,16 @@ async function listExamples() {
   if (!examples.length) return;
   const list = $("examples-list");
   for (const example of examples) {
-    const link = Object.assign(document.createElement("a"), { href: `?a=${example.id}`, textContent: example.title });
-    const item = document.createElement("li");
-    item.append(link);
-    list.append(item);
+    const poster = el("img", { src: `api/examples/${example.id}/poster`, alt: "", loading: "lazy" });
+    const text = el("span", {}, el("strong", { textContent: example.title }), el("small", { textContent: example.credit }));
+    list.append(el("li", {}, el("a", { href: `?a=${example.id}` }, poster, text)));
   }
   $("examples").hidden = false;
 }
 
 function showCredit(example) {
   const credit = $("credit");
-  credit.replaceChildren(`Example video: ${example.credit}, `);
+  credit.replaceChildren(`Video: ${example.credit.replace(", Wikimedia Commons", "")}, `);
   credit.append(Object.assign(document.createElement("a"), { href: example.source, textContent: example.license }));
   credit.hidden = false;
 }
@@ -161,6 +160,8 @@ async function showResult(id) {
   $("total").textContent = record.insects;
   $("total-label").textContent = record.insects === 1 ? "pollinator" : "pollinators";
   const minutes = record.duration_min < 1 ? `${Math.floor(videoDuration())} s` : timecode(videoDuration());
+  $("headline").textContent = `${plural(record.insects, "pollinator")}, ${plural(record.total_visits, "visit")}`;
+  $("headline").hidden = false;
   $("summary").textContent = summary(record, result.insects.length, result.flowers.length, minutes, plural);
   const moves = result.camera_moves ?? [];
   $("camera-note").hidden = moves.length === 0;
@@ -174,7 +175,7 @@ async function showResult(id) {
 
 function summary(record, insectsSeen, flowersSeen, minutes, plural) {
   if (record.insects > 0) {
-    return `${plural(record.total_visits, "visit")}, ${plural(record.flowers_tracked, "flower")} tracked, in ${minutes} of video. Each dot is one visit.`;
+    return `${plural(record.total_visits, "visit")}, ${plural(record.flowers_tracked, "flower")} tracked, in ${minutes} of video.`;
   }
   if (insectsSeen > 0) {
     return `${plural(insectsSeen, "insect")} passed by, but none stayed on a flower for at least 0.3 s.`;
@@ -442,7 +443,7 @@ function draw() {
     ctx.lineWidth = visiting ? 3 : 2;
     ctx.strokeStyle = pollen;
     corners(x1 - 3, y1 - 3, x2 + 3, y2 + 3);
-    if (track.visiting) label(groupName(track.group), x1, y1 - 8, pollen);
+    if (track.visiting) label(visitors.get(track.id)?.name ?? groupName(track.group), x1, y1 - 8, pollen);
   }
 
   if (time !== lastTime) {
@@ -517,22 +518,8 @@ canvas.addEventListener("click", (event) => {
     const box = boxAt(t, frame);
     return box && px >= box[0] - pad && px <= box[2] + pad && py >= box[1] - pad && py <= box[3] + pad;
   });
-  if (hit) openInsect(hit);
+  if (hit && visitors.has(hit.id)) openVisitor(hit.id);
 });
-
-function openInsect(insect) {
-  const visits = result.record.visits.filter((v) => v.insect === insect.id);
-  $("insect-group").textContent = groupName(insect.group);
-  $("insect-confidence").textContent =
-    insect.confidence == null ? "Not identified: it never landed long enough." : `${Math.round(insect.confidence * 100)}% sure`;
-  $("insect-cues").replaceChildren(
-    ...insect.cues.map((cue) => Object.assign(document.createElement("li"), { textContent: cue })),
-  );
-  $("insect-visits").textContent = visits.length
-    ? `${visits.length} ${visits.length === 1 ? "visit" : "visits"}: ${visits.map((v) => `${v.start_s.toFixed(1)} s`).join(", ")}`
-    : "No visit counted.";
-  $("insect").showModal();
-}
 
 video.addEventListener("loadedmetadata", () => {
   const stage = document.querySelector(".stage");

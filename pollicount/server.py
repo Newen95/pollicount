@@ -206,6 +206,14 @@ def create_app(
     def list_examples() -> list[dict]:
         return [{"id": j.id, **j.example} for j in jobs.values() if j.example]
 
+    @app.get("/api/examples/{example_id}/poster")
+    def read_poster(example_id: str) -> FileResponse:
+        job = jobs.get(example_id)
+        poster = job.dir / "poster.jpg" if job and job.example else None
+        if poster is None or not poster.is_file():
+            raise HTTPException(404, "poster not found")
+        return FileResponse(poster, media_type="image/jpeg")
+
     @app.get("/api/analyses/{job_id}")
     def read_analysis(job_id: str) -> dict:
         return get_job(job_id).public()

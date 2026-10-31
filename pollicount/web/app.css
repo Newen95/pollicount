@@ -66,7 +66,30 @@ main {
 
 /* Start */
 
-#start { max-width: 34rem; padding-top: 6vh; }
+#start { display: grid; gap: 40px; padding-top: 5vh; }
+.intro { max-width: 34rem; }
+
+@media (min-width: 900px) {
+  #start { grid-template-columns: minmax(0, 34rem) minmax(0, 1fr); gap: 64px; align-items: start; }
+}
+
+/* The collection drawer: the ten FIT Count groups as pinned specimens, what the camera can find. */
+.drawer { margin: 0; }
+.drawer ul {
+  list-style: none;
+  margin: 0;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px 10px;
+  border: 1px solid var(--ink);
+  background: #eef3f6;
+  box-shadow: 4px 4px 0 var(--line);
+}
+.drawer li { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.drawer img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; }
+.drawer span { font-size: 0.75rem; line-height: 1.25; color: var(--moss); }
+.drawer figcaption { margin-top: 12px; font-size: 0.875rem; color: var(--moss); }
 
 h1 {
   margin: 0 0 18px;
@@ -76,10 +99,10 @@ h1 {
   letter-spacing: -0.03em;
 }
 
-.lede { margin: 0 0 28px; color: var(--moss); font-size: 1.1875rem; }
+.lede { margin: 0 0 24px; color: var(--moss); font-size: 1.1875rem; }
 
 .steps {
-  margin: 0 0 32px;
+  margin: 36px 0 0;
   padding: 0;
   list-style: none;
   counter-reset: step;
@@ -132,18 +155,30 @@ h1 {
 .error { margin: 20px 0 0; color: var(--alert); font-weight: 600; }
 #restart { margin-top: 20px; }
 
-.examples { margin-top: 44px; }
-.examples h2 { margin: 0 0 10px; font-size: 1.0625rem; font-weight: 600; color: var(--moss); }
-.examples ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.examples { margin-top: 28px; }
+.examples h2 { margin: 0 0 10px; font-size: 1rem; font-weight: 600; color: var(--moss); }
+.examples ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .examples a {
-  display: block;
-  padding: 14px 4px;
-  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--surface);
   color: var(--ink);
-  font-weight: 600;
   text-decoration: none;
 }
-.examples a:hover, .examples a:focus-visible { color: var(--uv); }
+.examples img { width: 96px; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 8px; background: var(--line); }
+.examples strong { display: block; font-weight: 600; }
+.examples small { display: block; color: var(--moss); font-size: 0.8125rem; }
+.examples a:hover strong { color: var(--uv); }
+.examples a:focus-visible { outline: 3px solid var(--pollen); outline-offset: 2px; }
+
+/* On a phone the key result comes first, above the video; on wide screens it sits in the side column. */
+.headline { margin: 0 0 12px; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; }
+@media (min-width: 900px) { .headline { display: none; } }
+@media (max-width: 899px) { #results .total { display: none; } }
 
 .credit { margin: 10px 0 0; font-size: 0.875rem; color: var(--moss); }
 .credit a { color: inherit; }
