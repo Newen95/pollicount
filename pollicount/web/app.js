@@ -158,6 +158,7 @@ async function showResult(id) {
   const minutes = record.duration_min < 1 ? `${Math.round(record.duration_min * 60)} s` : `${record.duration_min} min`;
   $("summary").textContent = summary(record, result.insects.length, result.flowers.length, minutes, plural);
   renderLedger(record);
+  renderTimeline(record);
   const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
   $("download-json").href = URL.createObjectURL(blob);
 }
@@ -246,6 +247,43 @@ function renderLedger(record) {
     item.dataset.group = group;
     ledger.append(item);
   }
+}
+
+const videoDuration = () => (result ? result.video.frames / result.video.fps : 0);
+
+function renderTimeline(record) {
+  const timeline = $("timeline");
+  timeline.replaceChildren();
+  const duration = videoDuration();
+  const flowers = [...new Set(record.visits.map((v) => v.flower))];
+  if (!flowers.length || !duration) return;
+  flowers.forEach((flower, n) => {
+    const track = el("div", { className: "track" }, el("span", { className: "playhead" }));
+    for (const visit of record.visits.filter((v) => v.flower === flower)) {
+      const segment = el("button", {
+        className: "visit",
+        type: "button",
+        onclick: () => seek(visit.start_s),
+      });
+      segment.style.left = `${(visit.start_s / duration) * 100}%`;
+      segment.style.width = `${(visit.duration_s / duration) * 100}%`;
+      segment.setAttribute(
+        "aria-label",
+        `${groupName(visit.group)} on flower ${n + 1} at ${timecode(visit.start_s)}, ${visit.duration_s.toFixed(1)} s`,
+      );
+      track.append(segment);
+    }
+    timeline.append(el("div", { className: "lane" }, el("span", { className: "lane-name", textContent: `Flower ${n + 1}` }), track));
+  });
+  timeline.append(
+    el(
+      "div",
+      { className: "scale" },
+      el("span", { textContent: "0:00" }),
+      el("span", { textContent: timecode(duration) }),
+    ),
+  );
+  timeline.hidden = false;
 }
 
 function renderInsect(insect, visits) {
@@ -356,6 +394,8 @@ function draw() {
     updateLedger(lastTime, time);
     lastTime = time;
     $("scrub").value = Math.round((time / (video.duration || 1)) * 1000);
+    const at = `${Math.min(100, (time / (videoDuration() || 1)) * 100)}%`;
+    for (const head of document.querySelectorAll(".playhead")) head.style.left = at;
   }
 }
 
