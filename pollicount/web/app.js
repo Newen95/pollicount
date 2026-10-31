@@ -80,7 +80,7 @@ async function follow(id) {
     const job = await response.json();
     if (job.status === "failed") throw new Error(job.error);
     setStage(STAGES[job.stage] || job.stage, 0.1 + 0.9 * job.progress);
-    if (job.status === "done") return;
+    if (job.status === "done") return job;
     await new Promise((r) => setTimeout(r, 700));
   }
 }
@@ -103,12 +103,36 @@ async function start(file) {
 async function resume(id) {
   show("analysis");
   try {
-    await follow(id);
+    const job = await follow(id);
+    if (job.example) showCredit(job.example);
     await showResult(id);
   } catch (error) {
     $("progress").hidden = true;
     fail("analysis-error", error.message);
   }
+}
+
+/* Examples */
+
+async function listExamples() {
+  const response = await fetch("api/examples").catch(() => null);
+  const examples = response?.ok ? await response.json() : [];
+  if (!examples.length) return;
+  const list = $("examples-list");
+  for (const example of examples) {
+    const link = Object.assign(document.createElement("a"), { href: `?a=${example.id}`, textContent: example.title });
+    const item = document.createElement("li");
+    item.append(link);
+    list.append(item);
+  }
+  $("examples").hidden = false;
+}
+
+function showCredit(example) {
+  const credit = $("credit");
+  credit.replaceChildren(`Example video: ${example.credit}, `);
+  credit.append(Object.assign(document.createElement("a"), { href: example.source, textContent: example.license }));
+  credit.hidden = false;
 }
 
 /* Results */
@@ -353,6 +377,7 @@ for (const input of document.querySelectorAll("[data-pick]")) {
 }
 
 const resumeId = new URLSearchParams(location.search).get("a");
-if (resumeId && /^[0-9a-f]{32}$/.test(resumeId)) resume(resumeId);
+if (resumeId && /^[0-9a-z-]{1,40}$/.test(resumeId)) resume(resumeId);
+else listExamples();
 addEventListener("resize", draw);
 loop();

@@ -41,6 +41,10 @@
         </label>
       </div>
       <p id="start-error" class="error" role="alert" hidden></p>
+      <section id="examples" class="examples" hidden>
+        <h2>No video at hand? Open an example</h2>
+        <ul id="examples-list"></ul>
+      </section>
     </section>
 
     <section id="analysis" class="screen" hidden>
@@ -49,6 +53,7 @@
           <video id="video" playsinline muted loop></video>
           <canvas id="overlay" aria-hidden="true"></canvas>
         </div>
+        <p id="credit" class="credit" hidden></p>
         <div class="playback" hidden>
           <button id="play" class="button small" type="button">Pause</button>
           <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in the video">

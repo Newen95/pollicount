@@ -5,8 +5,10 @@ uv run uvicorn --factory pollicount.server:production_app
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -62,6 +64,8 @@ class Job:
     progress: float = 0.0
     error: str | None = None
     result: dict | None = None
+    example: dict | None = None
+    """Title and credits of a pre-analysed example; examples are never purged or rate limited."""
 
     def public(self) -> dict:
         return {
@@ -70,7 +74,24 @@ class Job:
             "stage": self.stage,
             "progress": round(self.progress, 3),
             "error": self.error,
+            "example": self.example,
         }
+
+
+_EXAMPLE_ID = re.compile(r"[a-z0-9-]{1,40}")
+
+
+def load_examples(examples_dir: Path) -> dict[str, Job]:
+    """Each example folder holds clip.mp4, result.json and meta.json (title, credit, licence, source)."""
+    examples = {}
+    for folder in sorted(examples_dir.glob("*")):
+        files = [folder / name for name in ("clip.mp4", "result.json", "meta.json")]
+        if not _EXAMPLE_ID.fullmatch(folder.name) or not all(f.is_file() for f in files):
+            continue
+        result = json.loads(files[1].read_text(encoding="utf-8"))
+        meta = json.loads(files[2].read_text(encoding="utf-8"))
+        examples[folder.name] = Job(folder.name, folder, 0.0, "done", "done", 1.0, None, result, meta)
+    return examples
 
 
 def create_app(
@@ -82,14 +103,18 @@ def create_app(
     """``tracker`` builds a tracker from a cache directory, so tests can inject a fake one."""
     limits = limits or Limits()
     app = FastAPI(title="PolliCount")
-    jobs: dict[str, Job] = {}
-    lock = threading.Lock()
     data_dir.mkdir(parents=True, exist_ok=True)
+    jobs: dict[str, Job] = load_examples(data_dir / "examples")
+    lock = threading.Lock()
 
     def purge_old_jobs() -> None:
         now = time.time()
         with lock:
-            expired = [j for j in jobs.values() if now - j.created > JOB_TTL_S and j.status in ("done", "failed")]
+            expired = [
+                j
+                for j in jobs.values()
+                if not j.example and now - j.created > JOB_TTL_S and j.status in ("done", "failed")
+            ]
             for job in expired:
                 del jobs[job.id]
         for job in expired:
@@ -126,7 +151,7 @@ def create_app(
     async def create_analysis(file: UploadFile, background: BackgroundTasks) -> dict:
         purge_old_jobs()
         hour_ago = time.time() - 3600
-        recent = sorted(j.created for j in jobs.values() if j.created > hour_ago)
+        recent = sorted(j.created for j in jobs.values() if not j.example and j.created > hour_ago)
         if len(recent) >= limits.max_per_hour:
             wait_min = max(1, round((recent[0] - hour_ago) / 60))
             raise HTTPException(429, f"PolliCount has reached its hourly limit. Try again in {wait_min} min.")
@@ -147,6 +172,10 @@ def create_app(
             jobs[job_id] = job
         background.add_task(run, job, source)
         return job.public()
+
+    @app.get("/api/examples")
+    def list_examples() -> list[dict]:
+        return [{"id": j.id, **j.example} for j in jobs.values() if j.example]
 
     @app.get("/api/analyses/{job_id}")
     def read_analysis(job_id: str) -> dict:

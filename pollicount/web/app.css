@@ -130,6 +130,22 @@ h1 {
 
 .error { margin: 20px 0 0; color: var(--alert); font-weight: 600; }
 
+.examples { margin-top: 44px; }
+.examples h2 { margin: 0 0 10px; font-size: 1.0625rem; font-weight: 600; color: var(--moss); }
+.examples ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.examples a {
+  display: block;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.examples a:hover, .examples a:focus-visible { color: var(--uv); }
+
+.credit { margin: 10px 0 0; font-size: 0.875rem; color: var(--moss); }
+.credit a { color: inherit; }
+
 /* Analysis */
 
 #analysis {

@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -99,3 +100,23 @@ def test_hourly_limit_refuses_new_uploads(tmp_path: Path, video_bytes: bytes):
 
     assert refused.status_code == 429
     assert "hourly limit" in refused.json()["detail"]
+
+
+def test_examples_are_listed_served_and_never_purged(tmp_path: Path, video_bytes: bytes, monkeypatch):
+    folder = tmp_path / "data" / "examples" / "hoverfly"
+    folder.mkdir(parents=True)
+    (folder / "clip.mp4").write_bytes(b"mp4")
+    (folder / "result.json").write_text('{"record": {"insects": 1}}', encoding="utf-8")
+    meta = {"title": "Hoverfly on wild carrot", "credit": "A. Author", "license": "CC BY 4.0", "source": "https://x"}
+    (folder / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+    (tmp_path / "data" / "examples" / "Bad Name").mkdir()
+    monkeypatch.setattr(server, "JOB_TTL_S", -1)
+    client = TestClient(
+        server.create_app(tmp_path / "data", lambda cache: fake_tracker, None, server.Limits(max_per_hour=1))
+    )
+
+    assert client.get("/api/examples").json() == [{"id": "hoverfly", **meta}]
+    assert client.post("/api/analyses", files={"file": ("a.webm", video_bytes, "video/webm")}).status_code == 202
+    assert client.get("/api/analyses/hoverfly").json()["example"]["title"] == "Hoverfly on wild carrot"
+    assert client.get("/api/analyses/hoverfly/result").json() == {"record": {"insects": 1}}
+    assert client.get("/api/analyses/hoverfly/video").content == b"mp4"
