@@ -23,6 +23,10 @@ const GROUP_NAMES = {
   "other insects": "Other insects",
 };
 
+const GROUP_NOTES = {
+  hoverflies: "Hoverflies come in many shapes: some are slender and dark rather than striped.",
+};
+
 const $ = (id) => document.getElementById(id);
 const video = $("video");
 const canvas = $("overlay");
@@ -242,6 +246,7 @@ function renderLedger(record) {
       el("p", { className: "tally", textContent: `${plural(count, "insect")}, ${plural(visits.length, "visit")}` }),
       grains,
     );
+    if (GROUP_NOTES[group]) label.append(el("p", { className: "note", textContent: GROUP_NOTES[group] }));
     const plate = el("img", { className: "plate", src: plateFor(group), alt: "", loading: "lazy" });
     const item = el("li", { className: "specimen" }, plate, label, toggle, details);
     item.dataset.group = group;

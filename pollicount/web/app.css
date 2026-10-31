@@ -289,6 +289,7 @@ h1 {
 .label .name { margin: 0; font-weight: 800; font-size: 1.125rem; letter-spacing: -0.01em; }
 .label .tally { margin: 2px 0 8px; color: var(--moss); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
 .grains { display: flex; flex-wrap: wrap; gap: 5px; }
+.label .note { margin: 8px 0 0; font-size: 0.8125rem; color: var(--moss); }
 
 .toggle {
   grid-column: 1 / -1;
