@@ -63,3 +63,18 @@ def test_flower_missing_for_a_few_frames_keeps_the_visit():
     flower = track("f1", "flower", {f: (100, 100, 200, 200) for f in range(100) if f not in (12, 13)})
     insect = track("i1", "insect", perched(range(10, 15)))
     assert [(v.start_frame, v.end_frame) for v in find_visits([insect], [flower], FPS)] == [(10, 14)]
+
+
+def test_large_close_up_insect_counts_when_its_centre_is_on_the_flower():
+    wings_out = {f: (110, 60, 270, 220) for f in range(10, 15)}
+    visits = find_visits([track("i1", "insect", wings_out)], [FLOWER], FPS)
+
+    assert [(v.start_frame, v.end_frame) for v in visits] == [(10, 14)]
+
+
+def test_flower_holding_the_centre_wins():
+    big = track("big", "flower", {f: (0, 0, 300, 300) for f in range(100)})
+    small = track("small", "flower", {f: (140, 140, 170, 170) for f in range(100)})
+    visits = find_visits([track("i1", "insect", perched(range(10, 15), x=145, y=145))], [big, small], FPS)
+
+    assert [v.flower_id for v in visits] == ["small"]

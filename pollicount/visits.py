@@ -1,7 +1,8 @@
 """Visit detection: an insect that stays on the same flower long enough.
 
-A frame counts as "on a flower" when most of the insect box lies inside the
-flower box and the insect is nearly still. Short dropouts (SAM losing the
+A frame counts as "on a flower" when the centre of the insect lies inside the flower box, or most of
+the insect box does, and the insect is nearly still. The centre matters for close-ups, where open
+wings stick out of the flower. Short dropouts (SAM losing the
 insect for a few frames) are bridged so one landing is not split in two.
 """
 
@@ -15,8 +16,8 @@ from .geometry import Track
 
 @dataclass(frozen=True)
 class VisitRule:
-    min_inside: float = 0.5
-    """Share of the insect box that must lie inside the flower box."""
+    min_inside: float = 0.3
+    """Share of the insect box inside the flower box that counts as landed, even off-centre."""
     max_speed: float = 2.0
     """Insect speed limit, in insect diagonals per second."""
     min_duration_s: float = 0.3
@@ -66,15 +67,18 @@ def _nearest_box(track: Track, frame: int, max_gap: int):
 
 
 def _host(insect: Track, frame: int, flowers: list[Track], rule: VisitRule, max_gap: int) -> str | None:
+    """The flower the insect sits on: one holding its centre first, then the one holding most of it."""
     box = insect.boxes[frame]
-    best, best_inside = None, rule.min_inside
+    cx, cy = box.center
+    best, best_key = None, (False, rule.min_inside)
     for flower in flowers:
         flower_box = _nearest_box(flower, frame, max_gap)
         if flower_box is None:
             continue
-        inside = box.inside_fraction(flower_box)
-        if inside >= best_inside:
-            best, best_inside = flower.object_id, inside
+        centred = flower_box.left <= cx < flower_box.right and flower_box.top <= cy < flower_box.bottom
+        key = (centred, box.inside_fraction(flower_box))
+        if (centred or key[1] >= rule.min_inside) and key >= best_key:
+            best, best_key = flower.object_id, key
     return best
 
 
