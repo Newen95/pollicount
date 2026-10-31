@@ -145,3 +145,8 @@ def test_crops_are_served_and_names_are_checked(client: TestClient, video_bytes:
     assert crop.status_code == 200 and crop.headers["content-type"] == "image/png"
     assert client.get(f"/api/analyses/{job_id}/crops/..%2Fjob.json").status_code == 404
     assert client.get(f"/api/analyses/{job_id}/crops/job.json").status_code == 404
+
+
+def test_web_files_are_revalidated_on_every_visit(client: TestClient):
+    assert client.get("/app.css").headers["cache-control"] == "no-cache"
+    assert "cache-control" not in client.get("/api/examples").headers

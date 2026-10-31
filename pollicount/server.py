@@ -231,6 +231,14 @@ def create_app(
             raise HTTPException(404, "crop not found")
         return FileResponse(crop, media_type="image/png")
 
+    @app.middleware("http")
+    async def revalidate_web_files(request, call_next):
+        """The page, its script and its styles are revalidated on every visit, so updates reach phones at once."""
+        response = await call_next(request)
+        if not request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     if WEB_DIR.exists():
         app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app
