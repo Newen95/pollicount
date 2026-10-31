@@ -54,11 +54,14 @@
           <canvas id="overlay" aria-hidden="true"></canvas>
         </div>
         <p id="credit" class="credit" hidden></p>
-        <div id="timeline" class="timeline" hidden></div>
         <div class="playback" hidden>
-          <button id="play" class="button small" type="button">Pause</button>
+          <button id="play" class="play" type="button" aria-label="Pause">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-pause" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/><path class="icon-play" d="M8 5.5v13l10.5-6.5z"/></svg>
+          </button>
           <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in the video">
+          <span id="clock" class="clock">0:00 / 0:00</span>
         </div>
+        <div id="timeline" class="timeline" hidden></div>
       </div>
 
       <aside class="side">

@@ -160,7 +160,7 @@ async function showResult(id) {
   document.querySelector(".playback").hidden = false;
   $("total").textContent = record.insects;
   $("total-label").textContent = record.insects === 1 ? "pollinator" : "pollinators";
-  const minutes = record.duration_min < 1 ? `${Math.round(record.duration_min * 60)} s` : `${record.duration_min} min`;
+  const minutes = record.duration_min < 1 ? `${Math.floor(videoDuration())} s` : timecode(videoDuration());
   $("summary").textContent = summary(record, result.insects.length, result.flowers.length, minutes, plural);
   const moves = result.camera_moves ?? [];
   $("camera-note").hidden = moves.length === 0;
@@ -199,6 +199,7 @@ const el = (tag, props = {}, ...children) => {
 
 const timecode = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const plural = (n, word) => `${n} ${n === 1 ? word : `${word}s`}`;
+const showLabel = (count) => (count === 1 ? "Show this insect" : `Show the ${count} insects`);
 const plateFor = (group) => `plates/${group.replace(" & ", "-").replace(/\s+/g, "-")}.webp`;
 
 function seek(seconds) {
@@ -235,14 +236,14 @@ function renderLedger(record) {
     const toggle = el("button", {
       className: "toggle",
       type: "button",
-      textContent: `Show the ${plural(count, "insect")}`,
+      textContent: showLabel(count),
     });
     toggle.setAttribute("aria-expanded", "false");
     toggle.addEventListener("click", () => {
       const open = details.hidden;
       details.hidden = !open;
       toggle.setAttribute("aria-expanded", String(open));
-      toggle.textContent = open ? "Hide" : `Show the ${plural(count, "insect")}`;
+      toggle.textContent = open ? "Hide" : showLabel(count);
     });
     const label = el(
       "div",
@@ -298,7 +299,7 @@ function openVisitor(id) {
 }
 
 function lane(name, visits, duration, className, onName) {
-  const track = el("div", { className: "track" }, el("span", { className: "playhead" }));
+  const track = el("div", { className: "track" });
   for (const visit of visits) {
     const segment = el("button", { className: "visit", type: "button", onclick: () => seek(visit.start_s) });
     segment.style.left = `${(visit.start_s / duration) * 100}%`;
@@ -306,10 +307,12 @@ function lane(name, visits, duration, className, onName) {
     segment.setAttribute("aria-label", `${name}: landed at ${timecode(visit.start_s)}, stayed ${visit.duration_s.toFixed(1)} s`);
     track.append(segment);
   }
+  track.append(el("span", { className: "playhead" }));
   const label = onName
     ? el("button", { className: "lane-name", type: "button", textContent: name, onclick: onName })
     : el("span", { className: "lane-name", textContent: name });
-  return el("div", { className: `lane ${className}` }, label, track);
+  const count = el("span", { className: "lane-count", textContent: plural(visits.length, "visit") });
+  return el("div", { className: `lane ${className}` }, label, track, count);
 }
 
 function renderTimeline(record) {
@@ -318,12 +321,19 @@ function renderTimeline(record) {
   const duration = videoDuration();
   if (!record.visits.length || !duration) return;
   timeline.append(lane("All visitors", record.visits, duration, "lane-all"));
+  const each = el("div", { className: "lanes-each", hidden: true });
   for (const visitor of visitors.values()) {
-    timeline.append(lane(visitor.name, visitor.visits, duration, "", () => openVisitor(visitor.id)));
+    each.append(lane(visitor.name, visitor.visits, duration, "", () => openVisitor(visitor.id)));
   }
-  timeline.append(
-    el("div", { className: "scale" }, el("span", { textContent: "0:00" }), el("span", { textContent: timecode(duration) })),
-  );
+  const label = (open) => (open ? "Hide each visitor" : `Show each visitor (${visitors.size})`);
+  const toggle = el("button", { className: "toggle lanes-toggle", type: "button", textContent: label(false) });
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.addEventListener("click", () => {
+    each.hidden = !each.hidden;
+    toggle.setAttribute("aria-expanded", String(!each.hidden));
+    toggle.textContent = label(!each.hidden);
+  });
+  timeline.append(toggle, each);
   timeline.hidden = false;
 }
 
@@ -439,6 +449,8 @@ function draw() {
     updateLedger(lastTime, time);
     lastTime = time;
     $("scrub").value = Math.round((time / (video.duration || 1)) * 1000);
+    $("scrub").style.setProperty("--played", `${(time / (video.duration || 1)) * 100}%`);
+    $("clock").textContent = `${timecode(time)} / ${timecode(video.duration || videoDuration())}`;
     const at = `${Math.min(100, (time / (videoDuration() || 1)) * 100)}%`;
     for (const head of document.querySelectorAll(".playhead")) head.style.left = at;
   }
@@ -529,8 +541,12 @@ video.addEventListener("loadedmetadata", () => {
 });
 
 $("play").addEventListener("click", () => (video.paused ? video.play() : video.pause()));
-video.addEventListener("play", () => ($("play").textContent = "Pause"));
-video.addEventListener("pause", () => ($("play").textContent = "Play"));
+const showPlaying = (playing) => {
+  $("play").classList.toggle("paused", !playing);
+  $("play").setAttribute("aria-label", playing ? "Pause" : "Play");
+};
+video.addEventListener("play", () => showPlaying(true));
+video.addEventListener("pause", () => showPlaying(false));
 $("scrub").addEventListener("input", (e) => {
   video.currentTime = (e.target.value / 1000) * (video.duration || 0);
 });
