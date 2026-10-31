@@ -31,6 +31,7 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let result = null;
 let tracks = [];
 let lastTime = -1;
+let currentId = null;
 
 function show(screen) {
   $("start").hidden = screen !== "start";
@@ -139,6 +140,7 @@ function showCredit(example) {
 /* Results */
 
 async function showResult(id) {
+  currentId = id;
   result = await (await fetch(`api/analyses/${id}/result`)).json();
   tracks = [
     ...result.flowers.map((t) => ({ ...t, kind: "flower", byFrame: index(t.boxes) })),
@@ -151,7 +153,6 @@ async function showResult(id) {
   $("progress").hidden = true;
   $("results").hidden = false;
   document.querySelector(".playback").hidden = false;
-  const plural = (n, word) => `${n} ${n === 1 ? word : `${word}s`}`;
   $("total").textContent = record.insects;
   $("total-label").textContent = record.insects === 1 ? "pollinator" : "pollinators";
   const minutes = record.duration_min < 1 ? `${Math.round(record.duration_min * 60)} s` : `${record.duration_min} min`;
@@ -163,7 +164,7 @@ async function showResult(id) {
 
 function summary(record, insectsSeen, flowersSeen, minutes, plural) {
   if (record.insects > 0) {
-    return `${plural(record.total_visits, "visit")} to ${plural(record.flowers_tracked, "tracked flower")} in ${minutes} of video. Each dot is one visit.`;
+    return `${plural(record.total_visits, "visit")}, ${plural(record.flowers_tracked, "flower")} tracked, in ${minutes} of video. Each dot is one visit.`;
   }
   if (insectsSeen > 0) {
     return `${plural(insectsSeen, "insect")} passed by, but none stayed on a flower for at least 0.3 s.`;
@@ -180,32 +181,98 @@ function index(boxes) {
   return map;
 }
 
+const el = (tag, props = {}, ...children) => {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children);
+  return node;
+};
+
+const timecode = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const plural = (n, word) => `${n} ${n === 1 ? word : `${word}s`}`;
+const plateFor = (group) => `plates/${group.replace(" & ", "-").replace(/\s+/g, "-")}.webp`;
+
+function seek(seconds) {
+  video.currentTime = seconds;
+  video.play().catch(() => {});
+  document.querySelector(".frame").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+}
+
 function renderLedger(record) {
   const ledger = $("ledger");
   ledger.replaceChildren();
   const groups = Object.entries(record.counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   if (groups.length === 0) {
-    const li = document.createElement("li");
-    li.className = "empty";
-    li.textContent = "No visits to list yet.";
-    ledger.append(li);
+    ledger.append(el("li", { className: "empty", textContent: "No visitor to show yet." }));
     return;
   }
+  const insectsById = new Map(result.insects.map((i) => [i.id, i]));
   for (const [group, count] of groups) {
-    const li = document.createElement("li");
-    li.dataset.group = group;
-    li.innerHTML = `<span class="name"></span><span class="count"></span><span class="grains"></span>`;
-    li.querySelector(".name").textContent = groupName(group);
-    li.querySelector(".count").textContent = count;
-    for (const visit of record.visits.filter((v) => v.group === group)) {
-      const grain = document.createElement("span");
-      grain.className = "grain";
-      grain.dataset.start = visit.start_s;
-      grain.title = `Visit at ${visit.start_s.toFixed(1)} s, ${visit.duration_s.toFixed(1)} s long`;
-      li.querySelector(".grains").append(grain);
+    const visits = record.visits.filter((v) => v.group === group);
+    const grains = el("span", { className: "grains" });
+    for (const visit of visits) {
+      grains.append(
+        el("span", {
+          className: "grain",
+          title: `Visit at ${timecode(visit.start_s)}, ${visit.duration_s.toFixed(1)} s long`,
+        }),
+      );
+      grains.lastChild.dataset.start = visit.start_s;
     }
-    ledger.append(li);
+    const details = el("div", { className: "details", hidden: true });
+    for (const id of [...new Set(visits.map((v) => v.insect))]) {
+      details.append(renderInsect(insectsById.get(id), visits.filter((v) => v.insect === id)));
+    }
+    const toggle = el("button", {
+      className: "toggle",
+      type: "button",
+      textContent: `Show the ${plural(count, "insect")}`,
+    });
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.addEventListener("click", () => {
+      const open = details.hidden;
+      details.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.textContent = open ? "Hide" : `Show the ${plural(count, "insect")}`;
+    });
+    const label = el(
+      "div",
+      { className: "label" },
+      el("p", { className: "name", textContent: groupName(group) }),
+      el("p", { className: "tally", textContent: `${plural(count, "insect")}, ${plural(visits.length, "visit")}` }),
+      grains,
+    );
+    const plate = el("img", { className: "plate", src: plateFor(group), alt: "", loading: "lazy" });
+    const item = el("li", { className: "specimen" }, plate, label, toggle, details);
+    item.dataset.group = group;
+    ledger.append(item);
   }
+}
+
+function renderInsect(insect, visits) {
+  const unsure = !insect || insect.confidence < 0.5 || insect.cues.includes("no answer");
+  const photos = el("div", { className: "photos" });
+  for (const name of insect?.crops ?? []) {
+    photos.append(el("img", { src: `api/analyses/${currentId}/crops/${name}`, alt: "", loading: "lazy" }));
+  }
+  const when = el("p", { className: "when" });
+  for (const visit of visits) {
+    when.append(
+      el("button", {
+        type: "button",
+        textContent: `${timecode(visit.start_s)}, ${visit.duration_s.toFixed(1)} s`,
+        onclick: () => seek(visit.start_s),
+      }),
+    );
+  }
+  const verdict = insect?.confidence == null ? "Not identified" : `${Math.round(insect.confidence * 100)}% sure`;
+  return el(
+    "article",
+    { className: "insect" },
+    photos,
+    el("p", { className: "verdict", textContent: unsure ? `${verdict}, check this one` : verdict }),
+    el("ul", { className: "cues" }, ...(insect?.cues ?? []).filter((c) => c !== "no answer").map((c) => el("li", { textContent: c }))),
+    when,
+  );
 }
 
 function updateLedger(previous, time) {
