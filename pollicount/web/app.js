@@ -46,6 +46,7 @@ function fail(id, message) {
   const el = $(id);
   el.textContent = message;
   el.hidden = false;
+  if (id === "analysis-error") $("restart").hidden = false;
 }
 
 function groupName(group) {
@@ -76,7 +77,7 @@ function upload(file) {
 async function follow(id) {
   for (;;) {
     const response = await fetch(`api/analyses/${id}`);
-    if (response.status === 404) throw new Error("This analysis has expired. Upload the video again.");
+    if (response.status === 404) throw new Error("This analysis is no longer available: analyses are kept for 24 hours. Upload the video again.");
     const job = await response.json();
     if (job.status === "failed") throw new Error(job.error);
     setStage(STAGES[job.stage] || job.stage, 0.1 + 0.9 * job.progress);

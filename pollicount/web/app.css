@@ -129,6 +129,7 @@ h1 {
 }
 
 .error { margin: 20px 0 0; color: var(--alert); font-weight: 600; }
+#restart { margin-top: 20px; }
 
 .examples { margin-top: 44px; }
 .examples h2 { margin: 0 0 10px; font-size: 1.0625rem; font-weight: 600; color: var(--moss); }
