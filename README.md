@@ -70,6 +70,9 @@ for any tracker with this rule.
 
 Uses Meta's Segment Anything Model (SAM 3.1) through the Meta Model API, and `meta-sam-parser` (SAM License).
 
+Group illustrations: generated with Muse Image and reviewed against each group's diagnostic traits with
+Muse Spark (`scripts/make_plates.py`).
+
 Evaluation data: Ratnayake, M. N., Amarathunga, D. C., Zaman, A., Dyer, A. G., Dorin, A. (2022).
 Spatial Monitoring and Insect Behavioural Analysis Dataset. Monash University. CC BY 4.0.
 https://doi.org/10.26180/21533760
