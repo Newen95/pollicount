@@ -58,7 +58,7 @@ def _clip(tmp_path, source: str):
 
 def test_still_camera_has_no_moves(tmp_path):
     clip = _clip(tmp_path, "smptebars=size=640x360:rate=15:duration=3")
-    assert motion.camera_moves(clip, 640, 360, 15) == []
+    assert motion.camera_moves(motion.camera_offsets(clip, 640, 360), 15, 640) == []
 
 
 def test_panning_camera_is_detected(tmp_path):
@@ -66,8 +66,10 @@ def test_panning_camera_is_detected(tmp_path):
         tmp_path,
         "smptebars=size=960x360:rate=15:duration=3,crop=480:360:'if(between(t,1,2),(t-1)*400,if(gt(t,2),400,0))':0",
     )
-    moves = motion.camera_moves(clip, 480, 360, 15)
+    offsets = motion.camera_offsets(clip, 480, 360)
+    moves = motion.camera_moves(offsets, 15, 480)
 
     assert len(moves) == 1
     start, end = moves[0]
     assert 0.8 <= start <= 1.2 and 1.7 <= end <= 2.2
+    assert abs(offsets[-1][0] + 400) < 20  # the scene slid 400 px to the left

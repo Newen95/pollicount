@@ -105,7 +105,8 @@ def analyse(
     report("preparing", 0.0)
     clip = video.to_sam_mp4(source, work_dir / "clip.mp4", fps=settings.fps, max_side=settings.max_side)
     info = video.probe(clip)
-    camera_moves = motion.camera_moves(clip, info.width, info.height, info.fps)
+    offsets = motion.camera_offsets(clip, info.width, info.height)
+    camera_moves = motion.camera_moves(offsets, info.fps, info.width)
 
     def frames_done(stage: str, start: float) -> Callable[[int], None]:
         furthest = [0]
@@ -121,7 +122,8 @@ def analyse(
     report("tracking flowers", 0.4)
     flowers = tracker(clip, settings.flower_prompt, frames_done("tracking flowers", 0.4))
     if settings.group_flowers:
-        flowers = flower_units.group_touching(flowers)
+        # Camera offsets are left out: measured on blurred pans they split heads more than they help.
+        flowers = flower_units.group_touching(flowers, size=(info.width, info.height), max_fill=round(2 * info.fps))
 
     report("finding visits", 0.7)
     visits = find_visits(insects, flowers, info.fps, settings.rule)

@@ -142,27 +142,43 @@ def detect(video: Path, width: int, height: int, fps: float, settings: MotionSet
     return link(detections, fps, s)
 
 
-def camera_moves(
-    video: Path, width: int, height: int, fps: float, threshold: float = 0.01, min_s: float = 0.3
+def camera_offsets(
+    video: Path, width: int, height: int, min_step: float = 0.004, min_response: float = 0.1
 ) -> list[tuple[float, float]]:
-    """Time ranges where the whole picture shifts, i.e. the camera moved.
+    """Cumulative shift of the whole picture at each frame, in pixels of the video.
 
-    Consecutive frames are compared by phase correlation on a 160 px wide copy; a shift above
-    ``threshold`` of the width per frame, held for ``min_s``, is a camera move.
+    Consecutive frames are compared by phase correlation on a 160 px wide copy. A scene point seen
+    at ``p`` on frame 0 is seen near ``p + offsets[f]`` on frame ``f``. Steps under ``min_step`` of
+    the width, or measured with a weak correlation peak, are noise (leaves, flicker): summed over
+    thousands of frames they would make a still camera drift, so they are dropped.
     """
     small_w = 160
     small_h = max(2, round(height * small_w / width / 2) * 2)
+    scale = width / small_w
     window = cv2.createHanningWindow((small_w, small_h), cv2.CV_32F)
-    moving: list[int] = []
+    offsets = [(0.0, 0.0)]
     previous = None
-    for i, frame in enumerate(frames(video, small_w, small_h)):
+    for frame in frames(video, small_w, small_h):
         current = frame.astype(np.float32)
         if previous is not None:
-            (dx, dy), _ = cv2.phaseCorrelate(previous, current, window)
-            if np.hypot(dx, dy) / small_w > threshold:
-                moving.append(i)
+            (dx, dy), response = cv2.phaseCorrelate(previous, current, window)
+            if np.hypot(dx, dy) < min_step * small_w or response < min_response:
+                dx = dy = 0.0
+            x, y = offsets[-1]
+            offsets.append((x + dx * scale, y + dy * scale))
         previous = current
+    return offsets
 
+
+def camera_moves(
+    offsets: list[tuple[float, float]], fps: float, width: int, threshold: float = 0.01, min_s: float = 0.3
+) -> list[tuple[float, float]]:
+    """Time ranges where the camera moved: a shift above ``threshold`` of the width per frame, held for ``min_s``."""
+    moving = [
+        i
+        for i in range(1, len(offsets))
+        if np.hypot(offsets[i][0] - offsets[i - 1][0], offsets[i][1] - offsets[i - 1][1]) / width > threshold
+    ]
     ranges: list[tuple[float, float]] = []
     for i in moving:
         if ranges and i - round(ranges[-1][1] * fps) <= 1:
