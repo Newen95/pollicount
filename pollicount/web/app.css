@@ -28,6 +28,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -155,7 +156,6 @@ h1 {
   padding-top: 8px;
 }
 
-#analysis[hidden], #start[hidden] { display: none; }
 
 @media (min-width: 900px) {
   #analysis { grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: start; }
@@ -184,8 +184,24 @@ h1 {
 
 /* Timeline: one lane per visited flower, one pollen segment per visit. */
 .timeline { margin-top: 14px; display: grid; gap: 6px; }
-.lane { display: grid; grid-template-columns: 4.5rem 1fr; align-items: center; gap: 10px; }
-.lane-name { font-size: 0.8125rem; font-weight: 600; color: var(--moss); }
+.lane { display: grid; grid-template-columns: 7.5rem 1fr; align-items: center; gap: 10px; }
+.lane-name {
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--moss);
+  font: 600 0.8125rem var(--font);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button.lane-name { cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+button.lane-name:focus-visible { outline: 3px solid var(--pollen); outline-offset: 2px; }
+.lane-all .lane-name { color: var(--ink); font-weight: 800; }
+.lane-all .visit { background: var(--uv); }
+.lane-all { padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px solid var(--line); }
 
 .track {
   position: relative;
@@ -222,7 +238,7 @@ h1 {
 .scale {
   display: flex;
   justify-content: space-between;
-  margin-left: calc(4.5rem + 10px);
+  margin-left: calc(7.5rem + 10px);
   font-size: 0.75rem;
   color: var(--moss);
   font-variant-numeric: tabular-nums;
@@ -308,11 +324,13 @@ h1 {
 .toggle:focus-visible { outline: 3px solid var(--pollen); outline-offset: 2px; }
 
 .details { grid-column: 1 / -1; display: grid; gap: 14px; }
-.details[hidden], .timeline[hidden] { display: none; }
 
 .insect { padding: 12px; border-radius: 14px; background: var(--surface); }
 .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--line); }
+.insect h3 { margin: 0; font-size: 1.0625rem; font-weight: 800; letter-spacing: -0.01em; }
+.insect .stats { margin: 2px 0 10px; color: var(--moss); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.when-title { margin: 12px 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--moss); }
 .verdict { margin: 10px 0 4px; font-weight: 600; }
 .cues { margin: 0; padding-left: 1.1em; color: var(--moss); font-size: 0.875rem; }
 .when { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }

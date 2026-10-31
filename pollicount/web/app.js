@@ -36,6 +36,7 @@ let result = null;
 let tracks = [];
 let lastTime = -1;
 let currentId = null;
+let visitors = new Map();
 
 function show(screen) {
   $("start").hidden = screen !== "start";
@@ -164,6 +165,7 @@ async function showResult(id) {
   const moves = result.camera_moves ?? [];
   $("camera-note").hidden = moves.length === 0;
   $("camera-note").textContent = `The camera moved at ${moves.map(([start]) => timecode(start)).join(", ")}, so flowers may be mixed up there. For a FIT Count, keep the phone still on one patch.`;
+  visitors = visitorsOf(record);
   renderLedger(record);
   renderTimeline(record);
   const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
@@ -227,8 +229,8 @@ function renderLedger(record) {
       grains.lastChild.dataset.start = visit.start_s;
     }
     const details = el("div", { className: "details", hidden: true });
-    for (const id of [...new Set(visits.map((v) => v.insect))]) {
-      details.append(renderInsect(insectsById.get(id), visits.filter((v) => v.insect === id)));
+    for (const visitor of [...visitors.values()].filter((v) => v.group === group)) {
+      details.append(renderInsect(insectsById.get(visitor.id), visitor));
     }
     const toggle = el("button", {
       className: "toggle",
@@ -259,64 +261,99 @@ function renderLedger(record) {
 
 const videoDuration = () => (result ? result.video.frames / result.video.fps : 0);
 
+const SINGULAR = {
+  bumblebees: "Bumblebee",
+  honeybees: "Honeybee",
+  "solitary bees": "Solitary bee",
+  wasps: "Wasp",
+  hoverflies: "Hoverfly",
+  "other flies": "Fly",
+  "butterflies & moths": "Butterfly or moth",
+  beetles: "Beetle",
+  "small insects": "Small insect",
+  "other insects": "Insect",
+};
+
+/** Each insect that visited a flower, named "Hoverfly 1", "Hoverfly 2"... in order of arrival. */
+function visitorsOf(record) {
+  const visitors = new Map();
+  const perGroup = {};
+  for (const visit of [...record.visits].sort((a, b) => a.start_s - b.start_s)) {
+    if (!visitors.has(visit.insect)) {
+      perGroup[visit.group] = (perGroup[visit.group] ?? 0) + 1;
+      const name = `${SINGULAR[visit.group] ?? "Insect"} ${perGroup[visit.group]}`;
+      visitors.set(visit.insect, { id: visit.insect, name, group: visit.group, visits: [] });
+    }
+    visitors.get(visit.insect).visits.push(visit);
+  }
+  return visitors;
+}
+
+function openVisitor(id) {
+  const card = document.getElementById(`visitor-${id}`);
+  if (!card) return;
+  const details = card.closest(".details");
+  if (details.hidden) details.previousElementSibling.click();
+  card.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+}
+
+function lane(name, visits, duration, className, onName) {
+  const track = el("div", { className: "track" }, el("span", { className: "playhead" }));
+  for (const visit of visits) {
+    const segment = el("button", { className: "visit", type: "button", onclick: () => seek(visit.start_s) });
+    segment.style.left = `${(visit.start_s / duration) * 100}%`;
+    segment.style.width = `${(visit.duration_s / duration) * 100}%`;
+    segment.setAttribute("aria-label", `${name}: landed at ${timecode(visit.start_s)}, stayed ${visit.duration_s.toFixed(1)} s`);
+    track.append(segment);
+  }
+  const label = onName
+    ? el("button", { className: "lane-name", type: "button", textContent: name, onclick: onName })
+    : el("span", { className: "lane-name", textContent: name });
+  return el("div", { className: `lane ${className}` }, label, track);
+}
+
 function renderTimeline(record) {
   const timeline = $("timeline");
   timeline.replaceChildren();
   const duration = videoDuration();
-  const flowers = [...new Set(record.visits.map((v) => v.flower))];
-  if (!flowers.length || !duration) return;
-  flowers.forEach((flower, n) => {
-    const track = el("div", { className: "track" }, el("span", { className: "playhead" }));
-    for (const visit of record.visits.filter((v) => v.flower === flower)) {
-      const segment = el("button", {
-        className: "visit",
-        type: "button",
-        onclick: () => seek(visit.start_s),
-      });
-      segment.style.left = `${(visit.start_s / duration) * 100}%`;
-      segment.style.width = `${(visit.duration_s / duration) * 100}%`;
-      segment.setAttribute(
-        "aria-label",
-        `${groupName(visit.group)} on flower ${n + 1} at ${timecode(visit.start_s)}, ${visit.duration_s.toFixed(1)} s`,
-      );
-      track.append(segment);
-    }
-    timeline.append(el("div", { className: "lane" }, el("span", { className: "lane-name", textContent: `Flower ${n + 1}` }), track));
-  });
+  if (!record.visits.length || !duration) return;
+  timeline.append(lane("All visitors", record.visits, duration, "lane-all"));
+  for (const visitor of visitors.values()) {
+    timeline.append(lane(visitor.name, visitor.visits, duration, "", () => openVisitor(visitor.id)));
+  }
   timeline.append(
-    el(
-      "div",
-      { className: "scale" },
-      el("span", { textContent: "0:00" }),
-      el("span", { textContent: timecode(duration) }),
-    ),
+    el("div", { className: "scale" }, el("span", { textContent: "0:00" }), el("span", { textContent: timecode(duration) })),
   );
   timeline.hidden = false;
 }
 
-function renderInsect(insect, visits) {
+function renderInsect(insect, visitor) {
   const unsure = !insect || insect.confidence < 0.5 || insect.cues.includes("no answer");
   const photos = el("div", { className: "photos" });
   for (const name of insect?.crops ?? []) {
     photos.append(el("img", { src: `api/analyses/${currentId}/crops/${name}`, alt: "", loading: "lazy" }));
   }
   const when = el("p", { className: "when" });
-  for (const visit of visits) {
+  for (const visit of visitor.visits) {
     when.append(
       el("button", {
         type: "button",
-        textContent: `${timecode(visit.start_s)}, ${visit.duration_s.toFixed(1)} s`,
+        textContent: `${timecode(visit.start_s)}, stayed ${visit.duration_s.toFixed(1)} s`,
         onclick: () => seek(visit.start_s),
       }),
     );
   }
+  const onFlowers = visitor.visits.reduce((sum, v) => sum + v.duration_s, 0);
   const verdict = insect?.confidence == null ? "Not identified" : `${Math.round(insect.confidence * 100)}% sure`;
   return el(
     "article",
-    { className: "insect" },
+    { className: "insect", id: `visitor-${visitor.id}` },
+    el("h3", { textContent: visitor.name }),
+    el("p", { className: "stats", textContent: `${plural(visitor.visits.length, "visit")}, ${onFlowers.toFixed(1)} s on flowers` }),
     photos,
     el("p", { className: "verdict", textContent: unsure ? `${verdict}, check this one` : verdict }),
     el("ul", { className: "cues" }, ...(insect?.cues ?? []).filter((c) => c !== "no answer").map((c) => el("li", { textContent: c }))),
+    el("p", { className: "when-title", textContent: "Visits, tap one to watch it" }),
     when,
   );
 }
