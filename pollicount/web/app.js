@@ -154,13 +154,23 @@ async function showResult(id) {
   $("total").textContent = record.insects;
   $("total-label").textContent = record.insects === 1 ? "pollinator" : "pollinators";
   const minutes = record.duration_min < 1 ? `${Math.round(record.duration_min * 60)} s` : `${record.duration_min} min`;
-  $("summary").textContent =
-    record.insects === 0
-      ? `No insect stayed on a flower long enough in ${minutes} of video. Try a sunnier moment or a patch in full bloom.`
-      : `${plural(record.total_visits, "visit")} to ${plural(record.flowers_tracked, "tracked flower")} in ${minutes} of video. Each dot is one visit.`;
+  $("summary").textContent = summary(record, result.insects.length, result.flowers.length, minutes, plural);
   renderLedger(record);
   const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
   $("download-json").href = URL.createObjectURL(blob);
+}
+
+function summary(record, insectsSeen, flowersSeen, minutes, plural) {
+  if (record.insects > 0) {
+    return `${plural(record.total_visits, "visit")} to ${plural(record.flowers_tracked, "tracked flower")} in ${minutes} of video. Each dot is one visit.`;
+  }
+  if (insectsSeen > 0) {
+    return `${plural(insectsSeen, "insect")} passed by, but none stayed on a flower for at least 0.3 s.`;
+  }
+  if (flowersSeen > 0) {
+    return "No insect found in this video. Try a sunny, warm moment, when pollinators are active, and keep the phone still.";
+  }
+  return "No flowers or insects found. PolliCount needs a flower patch filling the frame: film it from 20 to 50 cm, phone held still.";
 }
 
 function index(boxes) {

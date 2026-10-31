@@ -10,11 +10,11 @@ Each level must be shippable on its own: if time runs out, the previous level is
 ## Level 1, MVP (Sat 31 Oct)
 
 - [x] Real pipeline run: SAM 3.1 tracking + Muse Spark Open classification (close-up video), costs logged
-- [ ] Annotated video: boxes, group labels, visit counter
+- [x] Annotated video: boxes, group labels, visit counter (drawn in the browser)
 - [x] FastAPI backend: upload, background analysis, progress, results
 - [x] Web app: upload or film, live progress, annotated video, FIT Count summary, examples
 - [x] Deployed on Modal with a public URL
-- [ ] Checked on a phone
+- [x] Checked on a phone
 
 ## Level 2 (Mon 2 Nov)
 
