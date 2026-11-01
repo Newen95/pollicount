@@ -1,7 +1,7 @@
 import numpy as np
 
 from pollicount import motion
-from pollicount.geometry import Box
+from pollicount.geometry import Box, Track
 
 S = motion.MotionSettings(min_detections=3, max_jump=30, max_missing_s=0.2)
 
@@ -29,6 +29,30 @@ def test_link_bridges_short_gaps_and_splits_long_ones():
 def test_link_drops_jumps_and_short_tracks():
     detections = {0: [at(0, 0)], 1: [at(5, 0)], 2: [at(300, 300)], 3: [at(305, 300)]}
     assert motion.link(detections, 10, S) == []
+
+
+def piece(object_id, frames, x, y):
+    return Track(object_id, "insect", {f: at(x, y) for f in frames})
+
+
+def test_merge_joins_a_resting_insect_and_carries_its_box():
+    first, again = piece("a", range(0, 10), 50, 50), piece("b", range(60, 70), 55, 52)
+    merged = motion.merge_tracklets([first, again], fps=10, s=S)
+
+    assert len(merged) == 1
+    assert merged[0].frames == list(range(0, 70))
+    assert merged[0].boxes[30] == at(50, 50)
+    assert merged[0].confidences[30] == 0.0 and 5 not in merged[0].confidences
+
+
+def test_merge_joins_duplicates_and_short_flights_but_not_far_strangers():
+    side_by_side = [piece("a", range(0, 10), 50, 50), piece("b", range(3, 12), 52, 50)]
+    flight = [piece("a", range(0, 10), 50, 50), piece("b", range(15, 25), 150, 50)]
+    stranger = [piece("a", range(0, 10), 50, 50), piece("b", range(100, 110), 400, 300)]
+
+    assert len(motion.merge_tracklets(side_by_side, 10, S)) == 1
+    assert [len(t.boxes) for t in motion.merge_tracklets(flight, 10, S)] == [20]
+    assert len(motion.merge_tracklets(stranger, 10, S)) == 2
 
 
 def test_blobs_keep_insect_sized_shapes_outside_foliage():

@@ -1,7 +1,8 @@
 """Insect candidates from motion, for static cameras where insects are too small for SAM.
 
 A background model marks what moves; foliage that moves all the time, oversized blobs and frames
-shaken by wind are discarded; the remaining blobs are linked into tracks by nearest neighbour.
+shaken by wind are discarded; the remaining blobs are linked into tracks by nearest neighbour, then
+the pieces of one insect (resting out of sight of the background model, or after a short flight) are joined.
 """
 
 from __future__ import annotations
@@ -33,7 +34,16 @@ class MotionSettings:
     max_jump: float = 90.0
     """Largest move between two detections of one track, in pixels."""
     max_missing_s: float = 1.0
-    min_detections: int = 5
+    min_detections: int = 15
+    rest_gap_s: float = 20.0
+    """An insect resting on a flower fades into the background: a track that reappears where another
+    ended, within this delay, is the same insect, still in place meanwhile."""
+    rest_radius: float = 4.0
+    """How far the reappearing track may start, in insect diagonals (at least ``min_radius_px``)."""
+    min_radius_px: float = 30.0
+    flight_gap_s: float = 3.0
+    flight_speed_px_s: float = 300.0
+    """A track that starts soon after another ended, within this speed, is the same insect after a flight."""
 
 
 def frames(video: Path, width: int, height: int):
@@ -121,8 +131,58 @@ def link(detections: dict[int, list[Box]], fps: float, s: MotionSettings) -> lis
     return [t for t in done if len(t.boxes) >= s.min_detections]
 
 
+def _overlap_distance(a: Track, b: Track) -> float | None:
+    shared = [f for f in a.boxes if f in b.boxes]
+    if not shared:
+        return None
+    return float(np.mean([np.hypot(*np.subtract(a.boxes[f].center, b.boxes[f].center)) for f in shared]))
+
+
+def merge_tracklets(tracks: list[Track], fps: float, s: MotionSettings) -> list[Track]:
+    """Joins the pieces of one insect: duplicates that run side by side, a piece that reappears where
+    another one stopped (the insect rested, its boxes are carried over the gap), and a short flight."""
+    pieces = sorted(tracks, key=lambda t: t.frames[0])
+    merged: list[Track] = []
+    for piece in pieces:
+        size = max(piece.boxes[piece.frames[0]].diagonal, 1.0)
+        radius = max(s.rest_radius * size, s.min_radius_px)
+        best, best_cost = None, None
+        for host in merged:
+            end, start = host.frames[-1], piece.frames[0]
+            gap_s = (start - end) / fps
+            if gap_s < 0:
+                dist = _overlap_distance(host, piece)
+                ok = dist is not None and dist <= radius
+            else:
+                dist = float(np.hypot(*np.subtract(host.boxes[end].center, piece.boxes[start].center)))
+                ok = (gap_s <= s.rest_gap_s and dist <= radius) or (
+                    gap_s <= s.flight_gap_s and dist <= s.flight_speed_px_s * gap_s + radius
+                )
+            cost = (abs(gap_s), dist)
+            if ok and (best_cost is None or cost < best_cost):
+                best, best_cost = host, cost
+        if best is None:
+            merged.append(Track(piece.object_id, piece.concept, dict(piece.boxes)))
+            continue
+        end, start = best.frames[-1], piece.frames[0]
+        rest_box = best.boxes[end]
+        if start > end and np.hypot(*np.subtract(rest_box.center, piece.boxes[start].center)) <= radius:
+            for f in range(end + 1, start):
+                best.boxes[f] = rest_box
+                best.confidences[f] = 0.0  # carried over, never used for a crop
+        for f, box in piece.boxes.items():
+            best.boxes.setdefault(f, box)
+        best.boxes = dict(sorted(best.boxes.items()))
+    return merged
+
+
 def detect(video: Path, width: int, height: int, fps: float, settings: MotionSettings | None = None) -> list[Track]:
     s = settings or MotionSettings()
+    return merge_tracklets(link(candidates(video, width, height, fps, s), fps, s), fps, s)
+
+
+def candidates(video: Path, width: int, height: int, fps: float, s: MotionSettings) -> dict[int, list[Box]]:
+    """Moving blobs per frame, before linking."""
     model = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=25, detectShadows=False)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     moving = np.zeros((height, width), np.float32)
@@ -139,7 +199,7 @@ def detect(video: Path, width: int, height: int, fps: float, settings: MotionSet
         found = blobs(mask, moving > s.foliage_rate, s)
         if found:
             detections[i] = found
-    return link(detections, fps, s)
+    return detections
 
 
 def camera_offsets(
