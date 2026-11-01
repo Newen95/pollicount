@@ -628,11 +628,11 @@ function draw() {
       ctx.beginPath();
       ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2, 0, 0, Math.PI * 2);
       ctx.setLineDash([]);
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 3.5;
       ctx.strokeStyle = "rgba(16, 32, 26, 0.75)";
       ctx.stroke();
-      ctx.setLineDash([6, 6]);
-      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 5]);
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = uv;
       ctx.stroke();
       ctx.setLineDash([]);
