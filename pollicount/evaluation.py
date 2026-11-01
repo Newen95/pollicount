@@ -115,7 +115,8 @@ def load_ground_truth(trajectories: Path, rec: Recording) -> GroundTruth:
         newline=""
     ) as f:
         for row in csv.DictReader(f):
-            flowers[row["flower_num"]] = (float(row["x0"]), float(row["y0"]), float(row["radius"]))
+            if row["x0"] and row["y0"] and row["radius"]:
+                flowers[row["flower_num"]] = (float(row["x0"]), float(row["y0"]), float(row["radius"]))
     return GroundTruth(insects, visits, flowers)
 
 
@@ -170,6 +171,11 @@ def _match_insects(insects: list[Track], truth: GroundTruth, scale: Scale, max_d
     return matched
 
 
+def _median_s(frame_errors) -> float | None:
+    values = list(frame_errors)
+    return round(statistics.median(values) / SOURCE_FPS, 2) if values else None
+
+
 def harmonise(visits: list[TruthVisit], merge_gap_s: float, min_visit_s: float) -> list[TruthVisit]:
     """Annotators start a new visit when an insect hops off for a fraction of a second; PolliCount
     bridges such gaps. Merge them, then drop visits shorter than the counting threshold."""
@@ -208,6 +214,7 @@ def evaluate(
 
     unmatched = list(expected)
     true_positives = 0
+    pairs: list[tuple[float, float, TruthVisit]] = []
     for visit in visits:
         start, end = visit.start_frame * SOURCE_FPS / scale.fps, visit.end_frame * SOURCE_FPS / scale.fps
         hit = next(
@@ -224,6 +231,7 @@ def evaluate(
         if hit:
             unmatched.remove(hit)
             true_positives += 1
+            pairs.append((start, end, hit))
 
     truth_groups = {gt.id: gt.group for gt in truth.insects}
     classified = [(groups[p], truth_groups[g]) for p, g in insect_map.items() if p in groups]
@@ -236,9 +244,16 @@ def evaluate(
         "visit_precision": round(precision, 3),
         "visit_recall": round(recall, 3),
         "visit_f1": round(2 * precision * recall / (precision + recall), 3) if precision + recall else 0.0,
+        "visitors_expected": len({v.insect for v in expected}),
+        "visitors_found": len({v.insect_id for v in visits}),
+        "visit_seconds_expected": round(sum(v.end - v.start + 1 for v in expected) / SOURCE_FPS, 1),
+        "visit_seconds_found": round(sum(v.duration_s for v in visits), 1),
+        "start_error_s": _median_s(abs(start - gt.start) for start, _, gt in pairs),
+        "duration_error_s": _median_s(abs((end - start) - (gt.end - gt.start)) for start, end, gt in pairs),
         "insects_annotated": len(truth.insects),
         "insects_found": len(set(insect_map.values())),
         "flowers_annotated": len(truth.flowers),
+        "flowers_found": len(flowers),
         "flowers_matched": len(set(flower_map.values())),
         "classification_accuracy": round(sum(p == t for p, t in classified) / len(classified), 3)
         if classified

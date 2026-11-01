@@ -92,6 +92,9 @@ def test_perfect_tracks_give_full_scores(trajectories: Path):
     assert report["visit_f1"] == 1.0
     assert report["insects_found"] == 2
     assert report["classification_accuracy"] == 1.0
+    assert (report["visitors_expected"], report["visitors_found"]) == (1, 1)
+    assert report["start_error_s"] <= 0.1
+    assert report["visit_seconds_found"] == pytest.approx(report["visit_seconds_expected"], abs=0.1)
 
 
 def test_visit_on_the_wrong_flower_or_time_is_a_false_positive(trajectories: Path):
