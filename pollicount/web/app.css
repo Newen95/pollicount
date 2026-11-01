@@ -32,6 +32,8 @@ body {
 }
 
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+/* Controls are not text to copy: a quick double click must not highlight their labels. */
+button, .btn, .new, .icon, .example, .row, .controls, .crumbs, .tip { -webkit-user-select: none; user-select: none; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--pollen); outline-offset: 2px; }
 main { flex: 1; }
