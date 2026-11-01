@@ -322,7 +322,7 @@ function renderTimeline(record) {
   const duration = videoDuration();
   if (!record.visits.length || !duration) return;
 
-  const all = lane("All visitors", record.visits, duration, "lane-all");
+  const all = lane("All visits", record.visits, duration, "lane-all");
   const each = el("div", { className: "lanes-each", hidden: true });
   for (const visitor of visitors.values()) {
     each.append(lane(visitor.name, visitor.visits, duration, "", () => openVisitor(visitor.id)));
