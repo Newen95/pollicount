@@ -1,7 +1,8 @@
 """Visit detection: an insect that stays on the same flower long enough.
 
-A frame counts as "on a flower" when the insect is nearly still and its centre, a third of its box, or
-half of the bottom third of its box (where the legs are in a side view) lies inside the flower box.
+A frame counts as "on a flower" when the insect is nearly still and its centre, a third of its box,
+half of the bottom third of its box (where the legs are in a side view), or the middle of its bottom edge
+(its feet, under wings folded upright) lies inside the flower box.
 Close-ups need the last two: open wings and the body stand above the flower the legs are touching.
 Short breaks (the tracker losing the insect, or the insect walking fast across its flower for up to a second)
 are bridged so one landing is not split in two.
@@ -21,6 +22,9 @@ class VisitRule:
     """Share of the insect box inside the flower box that counts as landed, even off-centre."""
     min_legs_inside: float = 0.5
     """Share of the bottom third of the insect box inside the flower box that counts as landed."""
+    feet_on_top: bool = True
+    """Also landed when the middle of the box's bottom edge, where the feet are, lies in the flower box:
+    a butterfly with its wings folded upright stands on a flower with nothing else inside it."""
     max_speed: float = 2.0
     """Insect speed limit, in insect diagonals per second."""
     min_duration_s: float = 0.3
@@ -82,7 +86,14 @@ def _host(insect: Track, frame: int, flowers: list[Track], rule: VisitRule, max_
             continue
         centred = flower_box.left <= cx < flower_box.right and flower_box.top <= cy < flower_box.bottom
         inside = box.inside_fraction(flower_box)
-        landed = centred or inside >= rule.min_inside or legs.inside_fraction(flower_box) >= rule.min_legs_inside
+        feet = (
+            rule.feet_on_top
+            and flower_box.left <= cx < flower_box.right
+            and flower_box.top <= box.bottom < flower_box.bottom
+        )
+        landed = (
+            centred or feet or inside >= rule.min_inside or legs.inside_fraction(flower_box) >= rule.min_legs_inside
+        )
         key = (centred, inside, -flower_box.area)
         if landed and (best_key is None or key > best_key):
             best, best_key = flower.object_id, key

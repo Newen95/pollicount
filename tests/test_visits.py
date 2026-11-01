@@ -85,3 +85,16 @@ def test_insect_standing_on_top_of_a_flower_counts_by_its_legs():
     visits = find_visits([track("i1", "insect", side_view)], [FLOWER], FPS)
 
     assert [(v.start_frame, v.end_frame) for v in visits] == [(10, 14)]
+
+
+def test_butterfly_with_wings_folded_up_counts_by_its_feet():
+    # A tall narrow box whose bottom edge just reaches into the top of the flower.
+    butterfly = track("b", "insect", {f: (130, 20, 170, 105) for f in range(10)})
+
+    assert [v.duration_s for v in find_visits([butterfly], [FLOWER], FPS)] == [1.0]
+    assert find_visits([butterfly], [FLOWER], FPS, VisitRule(feet_on_top=False)) == []
+
+
+def test_insect_hovering_beside_a_flower_does_not_count_by_its_feet():
+    beside = track("h", "insect", {f: (210, 120, 240, 150) for f in range(10)})
+    assert find_visits([beside], [FLOWER], FPS) == []
