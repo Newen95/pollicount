@@ -160,7 +160,8 @@ def _match_flowers(flowers: list[Track], truth: GroundTruth, scale: Scale) -> di
 
 
 def _match_insects(insects: list[Track], truth: GroundTruth, scale: Scale, max_dist_px: float) -> dict[str, str]:
-    """Predicted insect id -> annotated insect id, by mean centre distance over shared frames."""
+    """Predicted insect id -> annotated insect id, by median centre distance over shared frames
+    (a few stray frames, where the tracker jumped to a leaf, do not hide a good match)."""
     matched = {}
     for track in insects:
         best, best_dist = None, max_dist_px * scale.factor
@@ -172,7 +173,7 @@ def _match_insects(insects: list[Track], truth: GroundTruth, scale: Scale, max_d
             ]
             if len(shared) < 3:
                 continue
-            dist = statistics.mean(hypot(c[0] - p[0] * scale.factor, c[1] - p[1] * scale.factor) for c, p in shared)
+            dist = statistics.median(hypot(c[0] - p[0] * scale.factor, c[1] - p[1] * scale.factor) for c, p in shared)
             if dist < best_dist:
                 best, best_dist = gt.id, dist
         if best:
