@@ -131,11 +131,20 @@ class Scale:
         return round(source_frame * self.fps / SOURCE_FPS)
 
 
-def _match_flowers(flowers: list[Track], truth: GroundTruth, scale: Scale) -> dict[str, str]:
-    """Predicted flower id -> annotated flower id, when its centre lies within the annotated circle."""
-    matched = {}
+def _match_flowers(flowers: list[Track], truth: GroundTruth, scale: Scale) -> dict[str, set[str]]:
+    """Predicted flower id -> annotated flowers it stands for: those whose centre lies in its box (a merged
+    head holds several), or else the nearest one when its centre lies within the annotated circle."""
+    matched: dict[str, set[str]] = {}
     for flower in flowers:
         box = flower.boxes[flower.frames[len(flower.frames) // 2]]
+        inside = {
+            k
+            for k, (x, y, _) in truth.flowers.items()
+            if box.left <= x * scale.factor <= box.right and box.top <= y * scale.factor <= box.bottom
+        }
+        if inside:
+            matched[flower.object_id] = inside
+            continue
         cx, cy = box.center
         best = min(
             truth.flowers.items(),
@@ -146,7 +155,7 @@ def _match_flowers(flowers: list[Track], truth: GroundTruth, scale: Scale) -> di
             best
             and hypot(best[1][0] * scale.factor - cx, best[1][1] * scale.factor - cy) <= best[1][2] * scale.factor * 1.5
         ):
-            matched[flower.object_id] = best[0]
+            matched[flower.object_id] = {best[0]}
     return matched
 
 
@@ -221,7 +230,7 @@ def evaluate(
             (
                 gt
                 for gt in unmatched
-                if flower_map.get(visit.flower_id) == gt.flower
+                if gt.flower in flower_map.get(visit.flower_id, ())
                 and start <= gt.end + tol
                 and gt.start <= end + tol
                 and insect_map.get(visit.insect_id, gt.insect) == gt.insect
@@ -254,7 +263,7 @@ def evaluate(
         "insects_found": len(set(insect_map.values())),
         "flowers_annotated": len(truth.flowers),
         "flowers_found": len(flowers),
-        "flowers_matched": len(set(flower_map.values())),
+        "flowers_matched": len(set().union(*flower_map.values())),
         "classification_accuracy": round(sum(p == t for p, t in classified) / len(classified), 3)
         if classified
         else None,
