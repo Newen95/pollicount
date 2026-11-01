@@ -1,7 +1,15 @@
 import json
 
 from pollicount import export
-from pollicount.classify import BACKENDS, NO_ANSWER, NOT_AN_INSECT, Classification, classify_crops, parse_reply
+from pollicount.classify import (
+    BACKENDS,
+    NO_ANSWER,
+    NOT_AN_INSECT,
+    Classification,
+    classify_crops,
+    clean_cue,
+    parse_reply,
+)
 from pollicount.visits import Visit
 
 
@@ -12,6 +20,12 @@ def test_parse_reply_reads_json_inside_fences():
     result = parse_reply(reply)
 
     assert (result.group, result.confidence, result.cues) == ("hoverflies", 0.65, ["one pair of wings"])
+
+
+def test_parse_reply_drops_cjk_words_from_cues():
+    result = parse_reply('{"group": "hoverflies", "confidence": 0.8, "visible_cues": ["size明显 >3mm", "明显"]}')
+    assert result.cues == ["size >3mm"]
+    assert clean_cue("large  eyes") == "large eyes"
 
 
 def test_parse_reply_falls_back_on_unknown_group():

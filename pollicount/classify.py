@@ -59,6 +59,7 @@ As on the official FIT Count form: hoverflies include non-typical, slender or da
 ichneumon wasps; beetles are larger than 3 mm, and "small insects" are shorter than 3 mm.
 Answer "{NOT_AN_INSECT}" for debris, a leaf, a petal, a shadow, a spider or a caterpillar:
 FIT Count does not count them.
+Write the cues in English.
 Reply with JSON only: {{"group": "...", "confidence": 0.0, "visible_cues": ["..."]}}"""
 
 
@@ -84,8 +85,17 @@ def parse_reply(text: str) -> Classification:
         confidence = min(1.0, max(0.0, float(data.get("confidence", 0.0))))
     except (TypeError, ValueError):
         confidence = 0.0
-    cues = [str(c) for c in data.get("visible_cues", []) if isinstance(c, str)]
-    return Classification(group, confidence, cues, text)
+    cues = [clean_cue(c) for c in data.get("visible_cues", []) if isinstance(c, str)]
+    return Classification(group, confidence, [c for c in cues if c], text)
+
+
+# Open models sometimes slip a Chinese, Japanese or Korean word into an English cue.
+_CJK = re.compile(r"[⺀-鿿가-힯豈-﫿＀-￯]+")
+
+
+def clean_cue(cue: str) -> str:
+    """The cue without CJK characters and with single spaces."""
+    return " ".join(_CJK.sub(" ", cue).split())
 
 
 def _image_part(path: Path) -> dict:
