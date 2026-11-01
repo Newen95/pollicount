@@ -32,7 +32,7 @@ Each level must be shippable on its own: if time runs out, the previous level is
 - [ ] Review agent: re-checks low-confidence tracks (re-prompts SAM with points, asks for more crops, explains its decision)
 - [ ] Offline mode: Muse Glimmer served on Modal, then on a laptop in the field
 - [ ] FIT Count submission-ready export
-- [ ] Group illustrations generated with Muse Image
+- [x] Group illustrations generated with Muse Image
 
 ## Freeze (Wed 4 Nov)
 
@@ -43,7 +43,7 @@ Each level must be shippable on its own: if time runs out, the previous level is
 
 ## UI and UX principles
 
-- Beautiful first: a distinct visual identity (nature, field notebook), not a generic dashboard.
+- Beautiful first: a distinct visual identity (a museum cabinet: velvet, brass, engraved plates), not a generic dashboard.
 - Fluid: no blocking spinner. Progress is shown as it happens (frames tracked, insects found, visits counted).
 - Immediate value: the first result (annotated video) appears before the full report.
 - Mobile first: large touch targets, one-hand use outdoors, readable in sunlight.

@@ -1,65 +1,156 @@
 "use strict";
 
-const STAGES = {
-  queued: "Waiting for a free slot",
-  preparing: "Preparing the video",
-  "tracking insects": "Looking for insects",
-  "tracking flowers": "Finding the flowers",
-  "finding visits": "Counting landings",
-  "identifying insects": "Identifying each visitor",
-  done: "Done",
+/* Analysis stages, in order, with the share of the server progress (0 to 1) each one covers. */
+const STAGES = [
+  { key: "upload", label: "Uploading your video" },
+  { key: "preparing", label: "Preparing the video", span: [0, 0.1] },
+  { key: "tracking insects", label: "Looking for insects", span: [0.1, 0.4] },
+  { key: "tracking flowers", label: "Finding the flowers", span: [0.4, 0.7] },
+  { key: "finding visits", label: "Counting landings", span: [0.7, 0.75] },
+  { key: "identifying insects", label: "Identifying each visitor", span: [0.75, 0.95] },
+];
+
+const GROUPS = {
+  bumblebees: {
+    name: "Bumblebees",
+    one: "Bumblebee",
+    about: "Large, round and furry bees, often banded with yellow and a white or buff tail.",
+    traits: ["Very hairy, stocky body", "Two pairs of wings", "Elbowed antennae", "Black with yellow bands and a pale tail"],
+  },
+  honeybees: {
+    name: "Honeybees",
+    one: "Honeybee",
+    about: "Slim, brown-banded bees from a hive. Workers carry pollen in baskets on their hind legs.",
+    traits: ["Amber and brown banded abdomen", "Hairy thorax, less fluffy than a bumblebee", "Elbowed antennae", "Pollen baskets on the hind legs"],
+  },
+  "solitary bees": {
+    name: "Solitary bees",
+    one: "Solitary bee",
+    about: "Bees that nest alone, in the ground or in hollow stems, from tiny and dark to bright ginger.",
+    traits: ["Two pairs of wings", "Elbowed antennae", "Often smaller than a honeybee", "Colours from black to ginger"],
+  },
+  wasps: {
+    name: "Wasps",
+    one: "Wasp",
+    about: "Hunters that also drink nectar. Smooth and shiny, with a narrow waist.",
+    traits: ["Narrow waist", "Almost hairless, yellow and black", "Two pairs of wings, folded lengthwise at rest", "Elbowed antennae"],
+  },
+  hoverflies: {
+    name: "Hoverflies",
+    one: "Hoverfly",
+    about: "Flies that dress up as bees and wasps. Some are slender and dark rather than striped.",
+    traits: ["One pair of wings, where bees and wasps have two", "Very large eyes", "Short antennae, no narrow waist", "Often hovers still in the air before landing"],
+  },
+  "other flies": {
+    name: "Other flies",
+    one: "Fly",
+    about: "Flies of all kinds, from house flies to metallic greenbottles.",
+    traits: ["One pair of wings", "Large eyes", "Short antennae with a bristle", "Often bristly, sometimes metallic"],
+  },
+  "butterflies & moths": {
+    name: "Butterflies and moths",
+    one: "Butterfly or moth",
+    about: "Scaled wings and a long tongue that uncoils to reach nectar.",
+    traits: ["Two pairs of scaled wings", "Coiled tongue", "Clubbed antennae in butterflies, feathery or thread-like in moths"],
+  },
+  beetles: {
+    name: "Beetles",
+    one: "Beetle",
+    about: "Hard wing cases that meet in a straight line down the back. Many come for the pollen.",
+    traits: ["Hard wing cases over the body", "Wing cases meet in a straight line", "Chewing mouthparts"],
+  },
+  "small insects": {
+    name: "Small insects",
+    one: "Small insect",
+    about: "Anything under 3 mm, such as pollen beetles and thrips, too small to sort further on a video.",
+    traits: ["Shorter than 3 mm", "Often dark and shiny", "Easy to miss: look for moving dots"],
+  },
+  "other insects": {
+    name: "Other insects",
+    one: "Insect",
+    about: "Every other visitor: bugs, ants, sawflies and more.",
+    traits: ["Shield bugs carry a triangle on the back", "Ants have a narrow waist and often no wings", "Sawflies look like wasps without the narrow waist"],
+  },
 };
 
-const GROUP_NAMES = {
-  bumblebees: "Bumblebees",
-  honeybees: "Honeybees",
-  "solitary bees": "Solitary bees",
-  wasps: "Wasps",
-  hoverflies: "Hoverflies",
-  "other flies": "Other flies",
-  "butterflies & moths": "Butterflies and moths",
-  beetles: "Beetles",
-  "small insects": "Small insects, under 3 mm",
-  "other insects": "Other insects",
-};
-
-const GROUP_NOTES = {
-  hoverflies: "Hoverflies come in many shapes: some are slender and dark rather than striped.",
-};
+const RATE_MIN_S = 60;
 
 const $ = (id) => document.getElementById(id);
 const video = $("video");
 const canvas = $("overlay");
 const ctx = canvas.getContext("2d");
-const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let result = null;
 let tracks = [];
 let lastTime = -1;
 let currentId = null;
 let visitors = new Map();
+let rows = [];
+
+const el = (tag, props = {}, ...children) => {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children);
+  return node;
+};
+const svg = (markup) => {
+  const span = document.createElement("span");
+  span.innerHTML = markup;
+  return span.firstElementChild;
+};
+const timecode = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const plural = (n, word) => `${n} ${n === 1 ? word : `${word}s`}`;
+const seconds = (s) => `${s.toFixed(1)} s`;
+const groupInfo = (group) => GROUPS[group] ?? { name: "Unidentified insects", one: "Insect", about: "", traits: [] };
+const plateFor = (group) => `plates/${group.replace(" & ", "-").replace(/\s+/g, "-")}.webp`;
+const videoDuration = () => (result ? result.video.frames / result.video.fps : video.duration || 0);
+const CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
 function show(screen) {
   $("start").hidden = screen !== "start";
+  $("footer").hidden = screen !== "start";
   $("analysis").hidden = screen !== "analysis";
+  $("side").hidden = screen !== "analysis";
 }
 
-function setStage(text, value) {
-  $("stage-name").textContent = text;
-  $("meter-fill").style.width = `${Math.round(value * 100)}%`;
-}
-
-function fail(id, message) {
-  const el = $(id);
-  el.textContent = message;
-  el.hidden = false;
-  if (id === "analysis-error") $("restart").hidden = false;
-}
-
-function groupName(group) {
-  return group ? GROUP_NAMES[group] || group : "Unidentified insect";
+function fail(message) {
+  $("progress").hidden = true;
+  $("error-text").textContent = message;
+  $("analysis-error").hidden = false;
 }
 
 /* Upload and progress */
+
+const progress = { started: 0, stage: 0 };
+
+function renderStages(index, fraction) {
+  const list = $("stages");
+  list.replaceChildren();
+  STAGES.forEach((stage, i) => {
+    const state = i < index ? "done" : i === index ? "now" : "";
+    const item = el("li", { className: state }, el("span", { className: "dot" }), el("span", { textContent: stage.label }));
+    if (state === "done") item.firstChild.append(svg(CHECK));
+    if (state === "now") {
+      const pct = Math.round(fraction * 100);
+      const bar = el("span", { className: "bar" }, el("span"));
+      bar.firstChild.style.width = `${pct}%`;
+      item.append(el("span", { className: "pct", textContent: `${pct}%` }), bar);
+    }
+    list.append(item);
+  });
+}
+
+function setStage(key, value) {
+  const index = Math.max(1, STAGES.findIndex((s) => s.key === key));
+  const [from, to] = STAGES[index].span;
+  renderStages(index, Math.min(1, Math.max(0, (value - from) / (to - from))));
+  if (key === "queued") $("stages").children[1].children[1].textContent = "Waiting for a free slot";
+  if (!progress.started && value > 0) progress.started = performance.now() - 1;
+  if (progress.started && value >= 0.15) {
+    const elapsed = (performance.now() - progress.started) / 1000;
+    const left = (elapsed * (1 - value)) / value;
+    $("eta").textContent = left < 60 ? "< 1 min" : `≈ ${Math.ceil(left / 60)} min`;
+  }
+}
 
 function upload(file) {
   return new Promise((resolve, reject) => {
@@ -67,7 +158,7 @@ function upload(file) {
     xhr.open("POST", "api/analyses");
     xhr.responseType = "json";
     xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) setStage("Uploading your video", 0.1 * (e.loaded / e.total));
+      if (e.lengthComputable) renderStages(0, e.loaded / e.total);
     };
     xhr.onload = () => {
       if (xhr.status === 202) resolve(xhr.response);
@@ -86,14 +177,26 @@ async function follow(id) {
     if (response.status === 404) throw new Error("This analysis is no longer available: analyses are kept for 24 hours. Upload the video again.");
     const job = await response.json();
     if (job.status === "failed") throw new Error(job.error);
-    setStage(STAGES[job.stage] || job.stage, 0.1 + 0.9 * job.progress);
     if (job.status === "done") return job;
+    setStage(job.stage, job.progress);
     await new Promise((r) => setTimeout(r, 700));
   }
 }
 
-async function start(file) {
+function waitingScreen(title) {
   show("analysis");
+  $("where").textContent = title;
+  renderStages(0, 0);
+  renderGhost();
+}
+
+async function start(file) {
+  if (!file.type.startsWith("video/")) {
+    $("start-error").textContent = "This file is not a video. Pick a video of a flower patch.";
+    $("start-error").hidden = false;
+    return;
+  }
+  waitingScreen("Your video");
   video.src = URL.createObjectURL(file);
   video.play().catch(() => {});
   try {
@@ -102,20 +205,19 @@ async function start(file) {
     await follow(job.id);
     await showResult(job.id);
   } catch (error) {
-    $("progress").hidden = true;
-    fail("analysis-error", error.message);
+    fail(error.message);
   }
 }
 
 async function resume(id) {
-  show("analysis");
+  waitingScreen("Your video");
+  renderStages(1, 0);
   try {
     const job = await follow(id);
-    if (job.example) showCredit(job.example);
+    if (job.example) showExample(job.example);
     await showResult(id);
   } catch (error) {
-    $("progress").hidden = true;
-    fail("analysis-error", error.message);
+    fail(error.message);
   }
 }
 
@@ -128,16 +230,21 @@ async function listExamples() {
   const list = $("examples-list");
   for (const example of examples) {
     const poster = el("img", { src: `api/examples/${example.id}/poster`, alt: "", loading: "lazy" });
-    const text = el("span", {}, el("strong", { textContent: example.title }), el("small", { textContent: example.credit }));
-    list.append(el("li", {}, el("a", { href: `?a=${example.id}` }, poster, text)));
+    const credit = `${example.credit.replace(", Wikimedia Commons", "")}, ${example.license}`;
+    const text = el("span", {}, el("strong", { textContent: example.title }), el("small", { textContent: credit }));
+    const open = el("span", { className: "open" });
+    open.dataset.tip = "Open this example";
+    open.append(svg('<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>'));
+    list.append(el("li", {}, el("a", { className: "example", href: `?a=${example.id}` }, poster, text, open)));
   }
   $("examples").hidden = false;
 }
 
-function showCredit(example) {
+function showExample(example) {
+  $("where").textContent = example.title;
   const credit = $("credit");
   credit.replaceChildren(`Video: ${example.credit.replace(", Wikimedia Commons", "")}, `);
-  credit.append(Object.assign(document.createElement("a"), { href: example.source, textContent: example.license }));
+  credit.append(el("a", { href: example.source, textContent: example.license }));
   credit.hidden = false;
 }
 
@@ -154,36 +261,14 @@ async function showResult(id) {
   video.play().catch(() => {});
 
   const { record } = result;
+  visitors = visitorsOf(record);
   $("progress").hidden = true;
   $("results").hidden = false;
-  document.querySelector(".playback").hidden = false;
-  $("total").textContent = record.insects;
-  $("total-label").textContent = record.insects === 1 ? "pollinator" : "pollinators";
-  const minutes = record.duration_min < 1 ? `${Math.floor(videoDuration())} s` : timecode(videoDuration());
-  $("headline").textContent = `${plural(record.insects, "pollinator")}, ${plural(record.total_visits, "visit")}`;
-  $("headline").hidden = false;
-  $("summary").textContent = summary(record, result.insects.length, result.flowers.length, minutes, plural);
-  const moves = result.camera_moves ?? [];
-  $("camera-note").hidden = moves.length === 0;
-  $("camera-note").textContent = `The camera moved at ${moves.map(([start]) => timecode(start)).join(", ")}, so flowers may be mixed up there. For a FIT Count, keep the phone still on one patch.`;
-  visitors = visitorsOf(record);
-  renderLedger(record);
-  renderTimeline(record);
   const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
-  $("download-json").href = URL.createObjectURL(blob);
-}
-
-function summary(record, insectsSeen, flowersSeen, minutes, plural) {
-  if (record.insects > 0) {
-    return `${plural(record.total_visits, "visit")}, ${plural(record.flowers_tracked, "flower")} tracked, in ${minutes} of video.`;
-  }
-  if (insectsSeen > 0) {
-    return `${plural(insectsSeen, "insect")} passed by, but none stayed on a flower for at least 0.3 s.`;
-  }
-  if (flowersSeen > 0) {
-    return "No insect found in this video. Try a sunny, warm moment, when pollinators are active, and keep the phone still.";
-  }
-  return "No flowers or insects found. PolliCount needs a flower patch filling the frame: film it from 20 to 50 cm, phone held still.";
+  $("download").href = URL.createObjectURL(blob);
+  $("download").hidden = false;
+  renderLedger(record);
+  select(rows.find((r) => `#${r.id}` === location.hash) ?? rows[0], false);
 }
 
 function index(boxes) {
@@ -192,205 +277,277 @@ function index(boxes) {
   return map;
 }
 
-const el = (tag, props = {}, ...children) => {
-  const node = Object.assign(document.createElement(tag), props);
-  node.append(...children);
-  return node;
-};
+/** Each insect that visited a flower, named "Hoverfly 1", "Hoverfly 2"... in order of arrival. */
+function visitorsOf(record) {
+  const found = new Map();
+  const perGroup = {};
+  for (const visit of [...record.visits].sort((a, b) => a.start_s - b.start_s)) {
+    if (!found.has(visit.insect)) {
+      perGroup[visit.group] = (perGroup[visit.group] ?? 0) + 1;
+      const name = `${groupInfo(visit.group).one} ${perGroup[visit.group]}`;
+      found.set(visit.insect, { id: visit.insect, name, group: visit.group, visits: [] });
+    }
+    found.get(visit.insect).visits.push(visit);
+  }
+  return found;
+}
 
-const timecode = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-const plural = (n, word) => `${n} ${n === 1 ? word : `${word}s`}`;
-const showLabel = (count) => (count === 1 ? "Show this insect" : `Show the ${count} insects`);
-const plateFor = (group) => `plates/${group.replace(" & ", "-").replace(/\s+/g, "-")}.webp`;
+/* Ledger: a tree of rows, all visits > groups > individuals, each with its own timeline. */
 
-function seek(seconds) {
-  video.currentTime = seconds;
-  video.play().catch(() => {});
-  document.querySelector(".frame").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+function makeRow({ id, level, name, visits, parent, open, thumb, kind, data }) {
+  const duration = videoDuration() || 1;
+  const row = el("div", { className: `row${level === 1 ? " all" : ""}`, id, tabIndex: -1 });
+  row.setAttribute("role", "treeitem");
+  row.setAttribute("aria-level", String(level));
+  row.setAttribute("aria-selected", "false");
+  row.style.setProperty("--level", level);
+  if (parent) row.dataset.parent = parent;
+  Object.assign(row, { visits, kind, data });
+
+  const label = el("span", { className: "label" });
+  if (open !== undefined) {
+    row.setAttribute("aria-expanded", String(open));
+    const twisty = el("button", { className: "twisty", type: "button", tabIndex: -1 });
+    twisty.setAttribute("aria-hidden", "true");
+    twisty.append(svg(CHEVRON));
+    label.append(twisty);
+  } else {
+    label.append(el("span", { className: "leaf" }));
+  }
+  if (thumb) {
+    const image = el("span", { className: "thumb" });
+    image.style.backgroundImage = `url(${thumb})`;
+    label.append(image);
+  }
+  label.append(el("span", { className: "name", textContent: name }));
+
+  const track = el("span", { className: "track" });
+  for (const visit of visits) {
+    const end = visit.start_s + visit.duration_s;
+    const seg = el("button", { className: "seg", type: "button", tabIndex: -1 });
+    seg.style.left = `${(visit.start_s / duration) * 100}%`;
+    seg.style.width = `${(visit.duration_s / duration) * 100}%`;
+    seg.dataset.span = `${timecode(visit.start_s)} - ${timecode(Math.round(end))}`;
+    seg.dataset.stay = seconds(visit.duration_s);
+    seg.dataset.start = visit.start_s;
+    seg.setAttribute("aria-label", `Visit ${seg.dataset.span}, ${seg.dataset.stay}`);
+    track.append(seg);
+  }
+  track.append(el("i", { className: "head" }));
+
+  const count = el("span", { className: "count", textContent: String(visits.length) });
+  count.dataset.tip = plural(visits.length, "visit");
+  count.setAttribute("aria-label", count.dataset.tip);
+  row.append(label, track, count);
+  return row;
 }
 
 function renderLedger(record) {
   const ledger = $("ledger");
+  ledger.classList.remove("ghost");
   ledger.replaceChildren();
+  rows = [makeRow({ id: "row-all", level: 1, name: "All visits", visits: record.visits, open: true, kind: "all" })];
   const groups = Object.entries(record.counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
-  if (groups.length === 0) {
-    ledger.append(el("li", { className: "empty", textContent: "No visitor to show yet." }));
-    return;
+  for (const [group] of groups) {
+    const members = [...visitors.values()].filter((v) => v.group === group);
+    const rowId = `row-${group.replace(/\W+/g, "-")}`;
+    rows.push(makeRow({
+      id: rowId, level: 2, name: groupInfo(group).name, parent: "row-all", open: true, thumb: plateFor(group),
+      visits: record.visits.filter((v) => v.group === group), kind: "group", data: { group, members },
+    }));
+    for (const visitor of members) {
+      rows.push(makeRow({
+        id: `row-insect-${visitor.id}`, level: 3, name: visitor.name, parent: rowId, visits: visitor.visits, kind: "insect", data: visitor,
+      }));
+    }
   }
-  const insectsById = new Map(result.insects.map((i) => [i.id, i]));
-  for (const [group, count] of groups) {
-    const visits = record.visits.filter((v) => v.group === group);
-    const grains = el("span", { className: "grains" });
-    for (const visit of visits) {
-      grains.append(
-        el("span", {
-          className: "grain",
-          title: `Visit at ${timecode(visit.start_s)}, ${visit.duration_s.toFixed(1)} s long`,
-        }),
+  ledger.append(...rows);
+  refresh();
+}
+
+function renderGhost() {
+  const ledger = $("ledger");
+  ledger.classList.add("ghost");
+  ledger.replaceChildren(
+    ...["All visits", "Insect groups"].map((name, i) => {
+      const row = el("div", { className: "row" });
+      row.style.setProperty("--level", i + 1);
+      const skel = el("span", { className: "skel" });
+      skel.style.animationDelay = `${i * 0.2}s`;
+      row.append(
+        el("span", { className: "label" }, el("span", { className: "leaf" }), el("span", { className: "name", textContent: name })),
+        el("span", { className: "track" }, skel),
+        el("span", { className: "count", textContent: "?" }),
       );
-      grains.lastChild.dataset.start = visit.start_s;
-    }
-    const details = el("div", { className: "details", hidden: true });
-    for (const visitor of [...visitors.values()].filter((v) => v.group === group)) {
-      details.append(renderInsect(insectsById.get(visitor.id), visitor));
-    }
-    const toggle = el("button", {
-      className: "toggle",
-      type: "button",
-      textContent: showLabel(count),
-    });
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.addEventListener("click", () => {
-      const open = details.hidden;
-      details.hidden = !open;
-      toggle.setAttribute("aria-expanded", String(open));
-      toggle.textContent = open ? "Hide" : showLabel(count);
-    });
-    const label = el(
-      "div",
-      { className: "label" },
-      el("p", { className: "name", textContent: groupName(group) }),
-      el("p", { className: "tally", textContent: `${plural(count, "insect")}, ${plural(visits.length, "visit")}` }),
-      grains,
-    );
-    if (GROUP_NOTES[group]) label.append(el("p", { className: "note", textContent: GROUP_NOTES[group] }));
-    const plate = el("img", { className: "plate", src: plateFor(group), alt: "", loading: "lazy" });
-    const item = el("li", { className: "specimen" }, plate, label, toggle, details);
-    item.dataset.group = group;
-    ledger.append(item);
-  }
-}
-
-const videoDuration = () => (result ? result.video.frames / result.video.fps : 0);
-
-const SINGULAR = {
-  bumblebees: "Bumblebee",
-  honeybees: "Honeybee",
-  "solitary bees": "Solitary bee",
-  wasps: "Wasp",
-  hoverflies: "Hoverfly",
-  "other flies": "Fly",
-  "butterflies & moths": "Butterfly or moth",
-  beetles: "Beetle",
-  "small insects": "Small insect",
-  "other insects": "Insect",
-};
-
-/** Each insect that visited a flower, named "Hoverfly 1", "Hoverfly 2"... in order of arrival. */
-function visitorsOf(record) {
-  const visitors = new Map();
-  const perGroup = {};
-  for (const visit of [...record.visits].sort((a, b) => a.start_s - b.start_s)) {
-    if (!visitors.has(visit.insect)) {
-      perGroup[visit.group] = (perGroup[visit.group] ?? 0) + 1;
-      const name = `${SINGULAR[visit.group] ?? "Insect"} ${perGroup[visit.group]}`;
-      visitors.set(visit.insect, { id: visit.insect, name, group: visit.group, visits: [] });
-    }
-    visitors.get(visit.insect).visits.push(visit);
-  }
-  return visitors;
-}
-
-function openVisitor(id) {
-  const card = document.getElementById(`visitor-${id}`);
-  if (!card) return;
-  const details = card.closest(".details");
-  if (details.hidden) details.previousElementSibling.click();
-  card.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
-}
-
-function lane(name, visits, duration, className, onName) {
-  const track = el("div", { className: "track" });
-  for (const visit of visits) {
-    const segment = el("button", { className: "visit", type: "button", onclick: () => seek(visit.start_s) });
-    segment.style.left = `${(visit.start_s / duration) * 100}%`;
-    segment.style.width = `${(visit.duration_s / duration) * 100}%`;
-    segment.setAttribute("aria-label", `${name}: landed at ${timecode(visit.start_s)}, stayed ${visit.duration_s.toFixed(1)} s`);
-    track.append(segment);
-  }
-  track.append(el("span", { className: "playhead" }));
-  const label = onName
-    ? el("button", { className: "lane-name", type: "button", textContent: name, onclick: onName })
-    : el("span", { className: "lane-name", textContent: name });
-  const count = el("span", { className: "lane-count", textContent: plural(visits.length, "visit") });
-  return el("div", { className: `lane ${className}` }, label, track, count);
-}
-
-function renderTimeline(record) {
-  const timeline = $("timeline");
-  timeline.replaceChildren();
-  const duration = videoDuration();
-  if (!record.visits.length || !duration) return;
-
-  const all = lane("All visits", record.visits, duration, "lane-all");
-  const each = el("div", { className: "lanes-each", hidden: true });
-  for (const visitor of visitors.values()) {
-    each.append(lane(visitor.name, visitor.visits, duration, "", () => openVisitor(visitor.id)));
-  }
-  const chevron = el("button", { className: "chevron", type: "button" });
-  chevron.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
-  const setOpen = (open) => {
-    each.hidden = !open;
-    all.classList.toggle("open", open);
-    chevron.setAttribute("aria-expanded", String(open));
-    chevron.setAttribute("aria-label", open ? "Hide each visitor" : `Show each visitor (${visitors.size})`);
-  };
-  setOpen(false);
-  chevron.addEventListener("click", (event) => {
-    event.stopPropagation();
-    setOpen(each.hidden);
-  });
-  // The whole row opens the lanes; its segments still jump to their visit.
-  all.addEventListener("click", (event) => {
-    if (!event.target.closest(".visit")) setOpen(each.hidden);
-  });
-  all.querySelector(".lane-count").append(chevron);
-  timeline.append(all, each);
-  timeline.hidden = false;
-}
-
-function renderInsect(insect, visitor) {
-  const unsure = !insect || insect.confidence < 0.5 || insect.cues.includes("no answer");
-  const photos = el("div", { className: "photos" });
-  for (const name of insect?.crops ?? []) {
-    photos.append(el("img", { src: `api/analyses/${currentId}/crops/${name}`, alt: "", loading: "lazy" }));
-  }
-  const when = el("p", { className: "when" });
-  for (const visit of visitor.visits) {
-    when.append(
-      el("button", {
-        type: "button",
-        textContent: `${timecode(visit.start_s)}, stayed ${visit.duration_s.toFixed(1)} s`,
-        onclick: () => seek(visit.start_s),
-      }),
-    );
-  }
-  const onFlowers = visitor.visits.reduce((sum, v) => sum + v.duration_s, 0);
-  const verdict = insect?.confidence == null ? "Not identified" : `${Math.round(insect.confidence * 100)}% sure`;
-  return el(
-    "article",
-    { className: "insect", id: `visitor-${visitor.id}` },
-    el("h3", { textContent: visitor.name }),
-    el("p", { className: "stats", textContent: `${plural(visitor.visits.length, "visit")}, ${onFlowers.toFixed(1)} s on flowers` }),
-    photos,
-    el("p", { className: "verdict", textContent: unsure ? `${verdict}, check this one` : verdict }),
-    el("ul", { className: "cues" }, ...(insect?.cues ?? []).filter((c) => c !== "no answer").map((c) => el("li", { textContent: c }))),
-    el("p", { className: "when-title", textContent: "Visits, tap one to watch it" }),
-    when,
+      return row;
+    }),
   );
+  ledger.setAttribute("aria-hidden", "true");
 }
 
-function updateLedger(previous, time) {
-  for (const grain of document.querySelectorAll(".grain")) {
-    const start = Number(grain.dataset.start);
-    if (!reducedMotion && previous < start && start <= time && time - previous < 1) {
-      const row = grain.closest("li");
-      row.classList.remove("flash");
-      void row.offsetWidth;
-      row.classList.add("flash");
-    }
-    grain.classList.toggle("seen", start <= time);
+const parentOf = (row) => row.dataset.parent && $(row.dataset.parent);
+const isOpen = (row) => row.getAttribute("aria-expanded") === "true";
+const canOpen = (row) => row.hasAttribute("aria-expanded");
+const selected = () => rows.find((r) => r.getAttribute("aria-selected") === "true");
+
+function refresh() {
+  for (const row of rows) {
+    let visible = true;
+    for (let p = parentOf(row); p; p = parentOf(p)) if (!isOpen(p)) visible = false;
+    row.hidden = !visible;
   }
+}
+
+function setOpen(row, open) {
+  if (!canOpen(row)) return;
+  row.setAttribute("aria-expanded", String(open));
+  refresh();
+}
+
+function select(row, focus = true) {
+  if (!row) return;
+  $("ledger").removeAttribute("aria-hidden");
+  for (const r of rows) {
+    r.setAttribute("aria-selected", String(r === row));
+    r.tabIndex = r === row ? 0 : -1;
+  }
+  for (let p = parentOf(row); p; p = parentOf(p)) setOpen(p, true);
+  const path = [];
+  for (let r = row; r; r = parentOf(r)) path.unshift(r);
+  $("crumbs").replaceChildren(
+    ...path.flatMap((r, i) => {
+      const name = el("span", { textContent: r.querySelector(".name").textContent });
+      return i < path.length - 1 ? [name, svg(CHEVRON)] : [name];
+    }),
+  );
+  $("pane").replaceChildren(renderPane(row));
+  if (focus) row.focus();
+}
+
+$("ledger").addEventListener("click", (e) => {
+  const row = e.target.closest(".row");
+  if (!row || !rows.includes(row)) return;
+  const seg = e.target.closest(".seg");
+  if (seg) return seek(Number(seg.dataset.start));
+  if (e.target.closest(".twisty")) return setOpen(row, !isOpen(row));
+  const wasSelected = row.getAttribute("aria-selected") === "true";
+  select(row);
+  if (canOpen(row)) setOpen(row, wasSelected ? !isOpen(row) : true);
+});
+
+$("ledger").addEventListener("keydown", (e) => {
+  const row = e.target.closest(".row");
+  if (!row || !rows.includes(row)) return;
+  const list = rows.filter((r) => !r.hidden);
+  const i = list.indexOf(row);
+  const move = {
+    ArrowDown: () => list[i + 1] && select(list[i + 1]),
+    ArrowUp: () => list[i - 1] && select(list[i - 1]),
+    Home: () => select(list[0]),
+    End: () => select(list[list.length - 1]),
+    ArrowRight: () => canOpen(row) && (isOpen(row) ? list[i + 1] && select(list[i + 1]) : setOpen(row, true)),
+    ArrowLeft: () => (canOpen(row) && isOpen(row) ? setOpen(row, false) : parentOf(row) && select(parentOf(row))),
+    Enter: () => setOpen(row, !isOpen(row)),
+  }[e.key];
+  if (move) {
+    e.preventDefault();
+    move();
+  }
+});
+
+/* Detail panes */
+
+const onFlowers = (visits) => visits.reduce((sum, v) => sum + v.duration_s, 0);
+
+function tally(items, className = "tally compact") {
+  const list = el("dl", { className });
+  for (const [term, value, note, lead, tip] of items) {
+    const dt = el("dt", { textContent: term });
+    if (tip) dt.dataset.tip = tip;
+    const dd = el("dd", { textContent: value });
+    if (note) dd.append(el("small", { textContent: note }));
+    list.append(el("div", { className: lead ? "lead" : "" }, dt, dd));
+  }
+  return list;
+}
+
+function emptyMessage(record) {
+  const insectsSeen = result.insects.length;
+  if (insectsSeen > 0) return `${plural(insectsSeen, "insect")} passed by, but none stayed on a flower for at least 0.3 s.`;
+  if (result.flowers.length > 0) return "No insect found in this video. Try a sunny, warm moment, when pollinators are active, and keep the phone still.";
+  if (record.flowers_tracked === 0) return "No flowers or insects found. PolliCount needs a flower patch filling the frame: film it from 20 to 50 cm, phone held still.";
+  return "No visit found in this video.";
+}
+
+function renderPane(row) {
+  const pane = el("section", { className: "pane" });
+  const { record } = result;
+  if (row.kind === "all") {
+    const duration = videoDuration();
+    const time = onFlowers(record.visits);
+    const items = [
+      ["Visits", String(record.total_visits), "", true],
+      ["Pollinators", String(record.insects)],
+      ["Flower heads", String(record.flowers_tracked)],
+      ["Time on flowers", seconds(time), `${Math.round((time / (duration || 1)) * 100)}% of the video`],
+    ];
+    if (duration >= RATE_MIN_S && record.flowers_tracked > 0) {
+      const rate = record.total_visits / record.flowers_tracked / (duration / 60);
+      items.push(["Visit rate", rate.toFixed(1), "per head, per minute", false, "Visits per flower head, per minute of video"]);
+    }
+    pane.append(tally(items, "tally"));
+    pane.append(el("p", { className: "hint", textContent: record.total_visits ? "Pick a group or an insect in the list to see its details." : emptyMessage(record) }));
+    return pane;
+  }
+
+  if (row.kind === "group") {
+    const { group, members } = row.data;
+    const info = groupInfo(group);
+    const plate = el("div", { className: "lit" }, el("img", { src: plateFor(group), alt: `Engraved plate of ${info.name.toLowerCase()}` }));
+    pane.append(
+      el("div", { className: "specimen" }, plate, el("div", { className: "plaque" }, el("h2", { textContent: info.name }), el("p", { textContent: info.about }))),
+      tally([
+        ["In this video", String(members.length)],
+        ["Visits", String(row.visits.length)],
+        ["Average visit", seconds(onFlowers(row.visits) / row.visits.length)],
+      ]),
+    );
+    if (info.traits.length) {
+      pane.append(el("h3", { textContent: "How to tell them apart" }), el("ul", { className: "traits" }, ...info.traits.map((t) => el("li", { textContent: t }))));
+    }
+    return pane;
+  }
+
+  const visitor = row.data;
+  const insect = result.insects.find((i) => i.id === visitor.id);
+  const heads = new Set(visitor.visits.map((v) => v.flower)).size;
+  pane.append(
+    el("h2", { className: "who", textContent: visitor.name }),
+    tally([
+      ["Flower heads visited", String(heads)],
+      ["Time on flowers", seconds(onFlowers(visitor.visits))],
+      ["Average visit", seconds(onFlowers(visitor.visits) / visitor.visits.length)],
+    ]),
+    el("h3", { textContent: "Identification" }),
+  );
+  const crops = el("div", { className: "crops" });
+  for (const name of insect?.crops ?? []) {
+    crops.append(el("img", { src: `api/analyses/${currentId}/crops/${name}`, alt: `${visitor.name}, close-up`, loading: "lazy" }));
+  }
+  if (crops.children.length) pane.append(crops);
+  const confidence = insect?.confidence;
+  const cues = (insect?.cues ?? []).filter((c) => c !== "no answer");
+  const pct = el("span", { className: "verdict-pct", textContent: confidence == null ? "?" : `${Math.round(confidence * 100)}%` });
+  pct.append(el("small", { textContent: "confidence" }));
+  const verdict = el(
+    "div",
+    { className: "verdict" },
+    el("div", { className: "verdict-head" }, el("span", { className: "verdict-name", textContent: confidence == null ? "Not identified" : groupInfo(visitor.group).one }), pct),
+  );
+  if (cues.length) verdict.append(el("ul", {}, ...cues.map((c) => el("li", { textContent: c }))));
+  if (confidence == null || confidence < 0.5) verdict.append(el("p", { className: "check", textContent: "The model was unsure: check this one on the video." }));
+  pane.append(verdict);
+  return pane;
 }
 
 /* Overlay */
@@ -413,9 +570,7 @@ function boxAt(track, frame) {
 }
 
 function activeVisit(insectId, time) {
-  return result.record.visits.find(
-    (v) => v.insect === insectId && time >= v.start_s && time <= v.start_s + v.duration_s,
-  );
+  return result.record.visits.find((v) => v.insect === insectId && time >= v.start_s && time <= v.start_s + v.duration_s);
 }
 
 function draw() {
@@ -426,9 +581,19 @@ function draw() {
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-  if (!result) return;
 
   const time = video.currentTime;
+  if (time !== lastTime) {
+    lastTime = time;
+    const duration = video.duration || videoDuration() || 1;
+    $("scrub").value = Math.round((time / duration) * 1000);
+    $("scrub").style.setProperty("--played", `${(time / duration) * 100}%`);
+    $("clock").textContent = `${timecode(time)} / ${timecode(video.duration || videoDuration() || 0)}`;
+    const at = `${Math.min(100, (time / (videoDuration() || duration)) * 100)}%`;
+    for (const head of document.querySelectorAll(".head")) head.style.left = at;
+  }
+  if (!result) return;
+
   const frame = Math.floor(time * result.video.fps);
   const { x, y, scale } = contentRect();
   const css = getComputedStyle(document.documentElement);
@@ -441,7 +606,7 @@ function draw() {
     const [x1, y1, x2, y2] = box.map((v, i) => (i % 2 ? y + v * scale : x + v * scale));
     if (track.kind === "flower") {
       ctx.setLineDash([4, 6]);
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = uv;
       ctx.beginPath();
       ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2, 0, 0, Math.PI * 2);
@@ -451,25 +616,17 @@ function draw() {
     }
     const visiting = activeVisit(track.id, time);
     drawTrail(track, frame, x, y, scale, pollen);
-    ctx.lineWidth = visiting ? 3 : 2;
     ctx.strokeStyle = pollen;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x1 - 3, y1 - 3, x2 - x1 + 6, y2 - y1 + 6);
+    ctx.lineWidth = visiting ? 3.5 : 2.5;
     corners(x1 - 3, y1 - 3, x2 + 3, y2 + 3);
-    if (track.visiting) label(visitors.get(track.id)?.name ?? groupName(track.group), x1, y1 - 8, pollen);
-  }
-
-  if (time !== lastTime) {
-    updateLedger(lastTime, time);
-    lastTime = time;
-    $("scrub").value = Math.round((time / (video.duration || 1)) * 1000);
-    $("scrub").style.setProperty("--played", `${(time / (video.duration || 1)) * 100}%`);
-    $("clock").textContent = `${timecode(time)} / ${timecode(video.duration || videoDuration())}`;
-    const at = `${Math.min(100, (time / (videoDuration() || 1)) * 100)}%`;
-    for (const head of document.querySelectorAll(".playhead")) head.style.left = at;
+    if (track.visiting) label(visitors.get(track.id)?.name ?? groupInfo(track.group).one, x1 - 3, y1 - 6);
   }
 }
 
 function corners(x1, y1, x2, y2) {
-  const k = Math.min(10, (x2 - x1) / 3, (y2 - y1) / 3);
+  const k = Math.min(12, (x2 - x1) / 3, (y2 - y1) / 3);
   ctx.beginPath();
   for (const [cx, cy, dx, dy] of [[x1, y1, 1, 1], [x2, y1, -1, 1], [x1, y2, 1, -1], [x2, y2, -1, -1]]) {
     ctx.moveTo(cx + dx * k, cy);
@@ -497,15 +654,17 @@ function drawTrail(track, frame, x, y, scale, color) {
   ctx.globalAlpha = 1;
 }
 
-function label(text, x, y, color) {
-  ctx.font = "600 13px 'Atkinson Hyperlegible Next', sans-serif";
-  const w = ctx.measureText(text).width + 14;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.roundRect(x, y - 18, w, 22, 11);
-  ctx.fill();
-  ctx.fillStyle = "#15302a";
-  ctx.fillText(text, x + 7, y - 3);
+function label(text, x, y) {
+  ctx.font = "600 15px 'Cormorant Garamond', Georgia, serif";
+  const w = ctx.measureText(text).width + 18;
+  const top = Math.max(0, y - 24);
+  ctx.fillStyle = "rgba(16, 32, 26, 0.85)";
+  ctx.fillRect(x, top, w, 24);
+  ctx.strokeStyle = "#c8a45a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, top + 0.5, w - 1, 23);
+  ctx.fillStyle = "#ece6d6";
+  ctx.fillText(text, x + 9, top + 17);
 }
 
 function loop() {
@@ -514,7 +673,65 @@ function loop() {
   else requestAnimationFrame(loop);
 }
 
-/* Interaction */
+/* Player */
+
+function seek(time) {
+  const duration = video.duration || videoDuration();
+  video.currentTime = Math.min(Math.max(0, time), Math.max(0, duration - 0.01));
+  draw();
+}
+
+const togglePlay = () => (video.paused ? video.play().catch(() => {}) : video.pause());
+
+function jump(direction) {
+  const starts = (selected()?.visits ?? []).map((v) => v.start_s).sort((a, b) => a - b);
+  if (!starts.length) return;
+  const now = video.currentTime;
+  const next = direction > 0 ? starts.find((t) => t > now + 0.05) ?? starts[0] : [...starts].reverse().find((t) => t < now - 0.5) ?? starts.at(-1);
+  seek(next);
+}
+
+function toggleSpeed() {
+  video.playbackRate = video.playbackRate === 1 ? 0.5 : 1;
+  $("speed").textContent = video.playbackRate === 1 ? "1×" : "½×";
+  $("speed").setAttribute("aria-pressed", String(video.playbackRate !== 1));
+}
+
+$("play").addEventListener("click", togglePlay);
+$("prev").addEventListener("click", () => jump(-1));
+$("next").addEventListener("click", () => jump(1));
+$("speed").addEventListener("click", toggleSpeed);
+const showPlaying = (playing) => {
+  $("play").classList.toggle("playing", playing);
+  $("play").setAttribute("aria-label", playing ? "Pause" : "Play");
+};
+video.addEventListener("play", () => showPlaying(true));
+video.addEventListener("pause", () => showPlaying(false));
+$("scrub").addEventListener("input", (e) => seek((e.target.value / 1000) * (video.duration || 0)));
+
+document.addEventListener("keydown", (e) => {
+  if ($("analysis").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest(".ledger, input, textarea, select")) return;
+  const frame = 1 / (result?.video.fps || 30);
+  const action = {
+    " ": togglePlay,
+    ArrowLeft: () => seek(video.currentTime - 5),
+    ArrowRight: () => seek(video.currentTime + 5),
+    ",": () => { video.pause(); seek(video.currentTime - frame); },
+    ".": () => { video.pause(); seek(video.currentTime + frame); },
+    s: toggleSpeed,
+    S: toggleSpeed,
+  }[e.key];
+  if (!action || (e.key === " " && e.target.closest("button, a"))) return;
+  e.preventDefault();
+  action();
+});
+
+video.addEventListener("loadedmetadata", () => {
+  const ratio = video.videoWidth / video.videoHeight;
+  $("frame").style.setProperty("--ratio", `${video.videoWidth} / ${video.videoHeight}`);
+  $("frame").style.width = `min(100%, calc(70dvh * ${ratio}))`;
+});
 
 canvas.addEventListener("click", (event) => {
   if (!result) return;
@@ -529,29 +746,63 @@ canvas.addEventListener("click", (event) => {
     const box = boxAt(t, frame);
     return box && px >= box[0] - pad && px <= box[2] + pad && py >= box[1] - pad && py <= box[3] + pad;
   });
-  if (hit && visitors.has(hit.id)) openVisitor(hit.id);
+  if (hit && visitors.has(hit.id)) select($(`row-insect-${hit.id}`), false);
 });
 
-video.addEventListener("loadedmetadata", () => {
-  const stage = document.querySelector(".stage");
-  stage.style.setProperty("--ratio", `${video.videoWidth} / ${video.videoHeight}`);
-  stage.style.maxWidth = `calc(72dvh * ${video.videoWidth / video.videoHeight})`;
-});
+/* Tooltips */
 
-$("play").addEventListener("click", () => (video.paused ? video.play() : video.pause()));
-const showPlaying = (playing) => {
-  $("play").classList.toggle("paused", !playing);
-  $("play").setAttribute("aria-label", playing ? "Pause" : "Play");
-};
-video.addEventListener("play", () => showPlaying(true));
-video.addEventListener("pause", () => showPlaying(false));
-$("scrub").addEventListener("input", (e) => {
-  video.currentTime = (e.target.value / 1000) * (video.duration || 0);
+const tip = el("div", { className: "tip", hidden: true });
+document.body.append(tip);
+
+function showTip(target) {
+  const box = target.getBoundingClientRect();
+  if (target.dataset.span) {
+    tip.replaceChildren(target.dataset.span, " ", el("span", { textContent: `(${target.dataset.stay})` }));
+  } else {
+    tip.textContent = target.dataset.tip;
+  }
+  const below = box.top < 90;
+  tip.classList.toggle("below", below);
+  tip.style.left = `${box.left + box.width / 2}px`;
+  tip.style.top = `${below ? box.bottom : box.top}px`;
+  tip.hidden = false;
+}
+
+const tipped = (e) => e.target.closest?.(".seg, [data-tip]");
+document.addEventListener("pointerover", (e) => {
+  const target = tipped(e);
+  if (target && e.pointerType !== "touch") showTip(target);
+  else tip.hidden = true;
 });
+document.addEventListener("focusin", (e) => {
+  const target = tipped(e);
+  if (target) showTip(target);
+});
+document.addEventListener("focusout", () => (tip.hidden = true));
+addEventListener("scroll", () => (tip.hidden = true), { passive: true });
+
+/* Start */
 
 for (const input of document.querySelectorAll("[data-pick]")) {
   input.addEventListener("change", () => input.files[0] && start(input.files[0]));
 }
+
+const drop = $("drop");
+for (const type of ["dragenter", "dragover"]) {
+  drop.addEventListener(type, (e) => {
+    e.preventDefault();
+    drop.classList.add("over");
+  });
+}
+drop.addEventListener("dragleave", (e) => {
+  if (!drop.contains(e.relatedTarget)) drop.classList.remove("over");
+});
+drop.addEventListener("drop", (e) => {
+  e.preventDefault();
+  drop.classList.remove("over");
+  const file = e.dataTransfer.files[0];
+  if (file) start(file);
+});
 
 const resumeId = new URLSearchParams(location.search).get("a");
 if (resumeId && /^[0-9a-z-]{1,40}$/.test(resumeId)) resume(resumeId);
