@@ -227,6 +227,7 @@ h1 { margin: 0; font: 600 clamp(2.6rem, 5vw, 4.1rem)/1.02 var(--serif); letter-s
 .bar { grid-column: 2 / 4; height: 2px; margin-top: -4px; background: rgba(236, 230, 214, 0.12); }
 .bar span { display: block; height: 100%; background: var(--pollen); box-shadow: 0 0 8px rgba(224, 185, 68, 0.4); transition: width 300ms ease; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.note { margin: 12px 2px 0; color: var(--sage); font-size: 0.875rem; }
 .calm, .hint { margin: 16px 0 0; padding: 14px 16px; border: 1px dashed rgba(200, 164, 90, 0.4); border-radius: 6px; color: var(--sage); font-size: 0.9rem; }
 .failure { padding: 18px 20px; border: 1px solid rgba(240, 165, 143, 0.5); border-radius: 6px; background: rgba(240, 165, 143, 0.06); }
 .failure p { margin: 0 0 16px; }

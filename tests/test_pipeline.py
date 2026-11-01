@@ -6,6 +6,7 @@ import pytest
 
 from pollicount import pipeline
 from pollicount.classify import Classification
+from pollicount.geometry import Box, Track
 
 from samples import track
 
@@ -75,3 +76,12 @@ def test_result_lists_the_crops_shown_to_the_classifier(source: Path, tmp_path: 
     assert all((tmp_path / "work" / "crops" / name).is_file() for name in insects["1"]["crops"])
     assert insects["2"]["crops"] == []
     assert isinstance(analysis.to_json()["camera_moves"], list)
+
+
+def test_motion_candidates_already_tracked_by_sam_are_left_out():
+    sam_track = Track("0", "insect", {f: Box(100, 100, 140, 140) for f in range(10)})
+    same = Track("m1", "insect", {f: Box(110, 110, 125, 125) for f in range(5, 15)})
+    other = Track("m2", "insect", {f: Box(400, 300, 410, 310) for f in range(5, 15)})
+
+    assert pipeline._seen_by(same, [sam_track])
+    assert not pipeline._seen_by(other, [sam_track])

@@ -496,6 +496,11 @@ function renderPane(row) {
       items.push(["Visit rate", rate.toFixed(1), "per head, per minute", false, "Visits per flower head, per minute of video"]);
     }
     pane.append(tally(items, "tally"));
+    const small = result.insects.filter((i) => i.from_motion && visitors.has(i.id)).length;
+    if (small) {
+      const text = small === 1 ? "1 insect was too small to outline and was found from its movement." : `${small} insects were too small to outline and were found from their movement.`;
+      pane.append(el("p", { className: "note", textContent: text }));
+    }
     pane.append(el("p", { className: "hint", textContent: record.total_visits ? "Pick a group or an insect in the list to see its details." : emptyMessage(record) }));
     return pane;
   }

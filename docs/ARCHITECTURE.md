@@ -7,9 +7,10 @@ phone video
   -> video.to_sam_mp4        H.264 MP4, fps and size chosen for cost
   -> sam.track  x2           "insect" and "flower" tracks (SAM 3.1, cached)
   -> flowers.group_touching  touching flowers merged into one head (umbels, spikes)
+  -> motion.detect           still camera only: small insects SAM missed, found from their movement
   -> visits.find_visits      insect still on a flower for >= 0.3 s
   -> video.crop              best frames of each visiting insect
-  -> classify.classify_crops FIT Count group, or "not an insect"
+  -> classify.classify_crops FIT Count group, or "not an insect" (motion candidates need confidence >= 0.3)
   -> export.fit_count        distinct insects per group (FIT Count) and visits, JSON and CSV
 ```
 

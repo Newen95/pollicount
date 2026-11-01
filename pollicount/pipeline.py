@@ -28,6 +28,10 @@ class Settings:
     crops_per_insect: int = 3
     group_flowers: bool = True
     """Merge touching flowers into one head (umbels, spikes), the unit FIT Count counts."""
+    motion_candidates: bool = True
+    """On a still camera, add the insects found from their movement that SAM missed (too small)."""
+    motion_min_confidence: float = 0.3
+    """Motion candidates are kept only when the classifier calls them an insect with this confidence."""
 
 
 @dataclass
@@ -43,6 +47,8 @@ class Analysis:
     """Crop file names (in ``work_dir/crops``) shown to the classifier, per insect."""
     camera_moves: list[tuple[float, float]] = field(default_factory=list)
     """Time ranges where the camera moved: flower identities are unreliable there."""
+    from_motion: set[str] = field(default_factory=set)
+    """Insects too small for SAM, found from their movement."""
 
     def to_json(self) -> dict:
         """Everything the web app needs to draw tracks over the video and show the record."""
@@ -57,6 +63,7 @@ class Analysis:
             return {
                 "id": track.object_id,
                 "visiting": track.object_id in visiting,
+                "from_motion": track.object_id in self.from_motion,
                 "group": group.group if group else None,
                 "confidence": group.confidence if group else None,
                 "cues": group.cues if group else [],
@@ -77,6 +84,20 @@ class Analysis:
             "record": self.record,
             "camera_moves": [list(m) for m in self.camera_moves],
         }
+
+
+def _seen_by(candidate: Track, tracks: list[Track]) -> bool:
+    """True when the candidate's centre lies in one of the tracks' boxes on most of their shared frames."""
+    for track in tracks:
+        shared = [f for f in candidate.boxes if f in track.boxes]
+        inside = sum(
+            track.boxes[f].left <= candidate.boxes[f].center[0] <= track.boxes[f].right
+            and track.boxes[f].top <= candidate.boxes[f].center[1] <= track.boxes[f].bottom
+            for f in shared
+        )
+        if shared and inside >= len(shared) / 2:
+            return True
+    return False
 
 
 def sam_tracker(cache_dir: Path) -> Tracker:
@@ -131,6 +152,11 @@ def analyse(
         )
 
     report("finding visits", 0.7)
+    small: set[str] = set()
+    if settings.motion_candidates and classifier and not camera_moves:
+        extra = [t for t in motion.detect(clip, info.width, info.height, info.fps) if not _seen_by(t, insects)]
+        small = {t.object_id for t in extra}
+        insects = insects + extra
     visits = find_visits(insects, flowers, info.fps, settings.rule)
 
     groups: dict[str, classify.Classification] = {}
@@ -145,8 +171,11 @@ def analyse(
             ]
             groups[insect.object_id] = classifier(paths)
             crops[insect.object_id] = [p.name for p in paths]
+    # Motion also picks up leaves and shadows: only those the classifier confirms are counted.
+    unconfirmed = {i for i in small if i not in groups or groups[i].confidence < settings.motion_min_confidence}
+    visits = [v for v in visits if v.insect_id not in unconfirmed]
 
     record = export.fit_count(visits, groups, info.duration_s, len(flowers))
     export.write(record, work_dir)
     report("done", 1.0)
-    return Analysis(clip, info, insects, flowers, visits, groups, record, crops, camera_moves)
+    return Analysis(clip, info, insects, flowers, visits, groups, record, crops, camera_moves, small)

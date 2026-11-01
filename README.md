@@ -63,7 +63,10 @@ every visit (insect, flower, start, duration) for finer analyses. Spiders and ca
   picture: a landed insect looks like it is flying, and flowers that just came into view are only partly found.
   A visit that starts during a pan may be dated up to about half a second late, and flowers may be mixed up
   there. Counts are not affected, and the app warns when the camera moved.
-- **Far, tiny insects.** SAM 3.1 does not find insects of about 30 pixels, filmed from far away (see Evaluation).
+- **Far, tiny insects.** SAM 3.1 does not find insects of about 30 pixels, filmed from far away. On a still
+  camera, PolliCount then finds them from their movement and has Muse Spark confirm each one (see Evaluation).
+  Their group is less reliable at this size, and a visit already under way when the video starts is missed
+  until the insect moves.
 
 ## Evaluation
 
@@ -73,6 +76,16 @@ flower for a fraction of a second; the evaluation merges such hops (under 0.2 s)
 
 With the annotated tracks themselves as input, the visit rule reaches F1 0.90 on test video T1: the ceiling
 for any tracker with this rule.
+
+On the busiest 2 minutes of five far-field test videos (T1, T3, T4, T7, T8; honeybees of about 30 px), all
+five together:
+
+| | Annotated | SAM 3.1 alone | With motion candidates |
+|---|---|---|---|
+| Visits found (matched) | 55 | 0 | 83 (41) |
+| Visit precision / recall / F1 | | 0 / 0 / 0 | 0.49 / 0.75 / 0.59 |
+| Distinct visitors | 10 | 0 | 19 |
+| Seconds on flowers | 312 | 0 | 199 |
 
 ## Credits
 
