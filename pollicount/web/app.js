@@ -84,6 +84,8 @@ let tracks = [];
 let lastTime = -1;
 let currentId = null;
 let visitors = new Map();
+let far = new Set();
+const FAR_NOTE = "From this distance, PolliCount counts visits but cannot tell individual insects apart.";
 let rows = [];
 
 const el = (tag, props = {}, ...children) => {
@@ -261,6 +263,7 @@ async function showResult(id) {
   video.play().catch(() => {});
 
   const { record } = result;
+  far = new Set(result.insects.filter((i) => i.from_motion).map((i) => i.id));
   visitors = visitorsOf(record);
   $("progress").hidden = true;
   $("results").hidden = false;
@@ -277,11 +280,13 @@ function index(boxes) {
   return map;
 }
 
-/** Each insect that visited a flower, named "Hoverfly 1", "Hoverfly 2"... in order of arrival. */
+/** Each insect seen close up that visited a flower, named "Hoverfly 1", "Hoverfly 2"... in order of arrival.
+ * Insects found from their movement are left out: from afar, one insect leaving and coming back looks like two. */
 function visitorsOf(record) {
   const found = new Map();
   const perGroup = {};
   for (const visit of [...record.visits].sort((a, b) => a.start_s - b.start_s)) {
+    if (far.has(visit.insect)) continue;
     if (!found.has(visit.insect)) {
       perGroup[visit.group] = (perGroup[visit.group] ?? 0) + 1;
       const name = `${groupInfo(visit.group).one} ${perGroup[visit.group]}`;
@@ -352,7 +357,7 @@ function renderLedger(record) {
     const members = [...visitors.values()].filter((v) => v.group === group);
     const rowId = `row-${group.replace(/\W+/g, "-")}`;
     rows.push(makeRow({
-      id: rowId, level: 2, name: groupInfo(group).name, parent: "row-all", open: true, thumb: plateFor(group),
+      id: rowId, level: 2, name: groupInfo(group).name, parent: "row-all", open: members.length ? true : undefined, thumb: plateFor(group),
       visits: record.visits.filter((v) => v.group === group), kind: "group", data: { group, members },
     }));
     for (const visitor of members) {
@@ -495,13 +500,17 @@ function renderPane(row) {
       const rate = record.total_visits / record.flowers_tracked / (duration / 60);
       items.push(["Visit rate", rate.toFixed(1), "per head, per minute", false, "Visits per flower head, per minute of video"]);
     }
-    pane.append(tally(items, "tally"));
-    const small = result.insects.filter((i) => i.from_motion && visitors.has(i.id)).length;
-    if (small) {
-      const text = small === 1 ? "1 insect was too small to outline and was found from its movement." : `${small} insects were too small to outline and were found from their movement.`;
-      pane.append(el("p", { className: "note", textContent: text }));
+    const farVisits = record.visits.filter((v) => far.has(v.insect)).length;
+    if (farVisits) {
+      items.splice(1, 1);
+      if (visitors.size) items.splice(1, 0, ["Pollinators seen close up", String(visitors.size)]);
     }
-    pane.append(el("p", { className: "hint", textContent: record.total_visits ? "Pick a group or an insect in the list to see its details." : emptyMessage(record) }));
+    pane.append(tally(items, "tally"));
+    if (farVisits) {
+      const which = farVisits === record.total_visits ? "All visits were" : `${plural(farVisits, "visit")} ${farVisits === 1 ? "was" : "were"}`;
+      pane.append(el("p", { className: "note", textContent: `${which} by insects too small to outline, found from their movement. ${FAR_NOTE}` }));
+    }
+    pane.append(el("p", { className: "hint", textContent: !record.total_visits ? emptyMessage(record) : visitors.size ? "Pick a group or an insect in the list to see its details." : "Pick a group in the list to see its details." }));
     return pane;
   }
 
@@ -512,11 +521,14 @@ function renderPane(row) {
     pane.append(
       el("div", { className: "specimen" }, plate, el("div", { className: "plaque" }, el("h2", { textContent: info.name }), el("p", { textContent: info.about }))),
       tally([
-        ["In this video", String(members.length)],
+        ...(row.visits.some((v) => far.has(v.insect))
+          ? members.length ? [["Seen close up", String(members.length)]] : []
+          : [["In this video", String(members.length)]]),
         ["Visits", String(row.visits.length)],
         ["Average visit", seconds(onFlowers(row.visits) / row.visits.length)],
       ]),
     );
+    if (row.visits.some((v) => far.has(v.insect))) pane.append(el("p", { className: "note", textContent: FAR_NOTE }));
     if (info.traits.length) {
       pane.append(el("h3", { textContent: "How to tell them apart" }), el("ul", { className: "traits" }, ...info.traits.map((t) => el("li", { textContent: t }))));
     }
@@ -752,6 +764,7 @@ canvas.addEventListener("click", (event) => {
     return box && px >= box[0] - pad && px <= box[2] + pad && py >= box[1] - pad && py <= box[3] + pad;
   });
   if (hit && visitors.has(hit.id)) select($(`row-insect-${hit.id}`), false);
+  else if (hit && far.has(hit.id) && hit.group) select($(`row-${hit.group.replace(/\W+/g, "-")}`), false);
 });
 
 /* Tooltips */

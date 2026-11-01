@@ -66,7 +66,10 @@ every visit (insect, flower, start, duration) for finer analyses. Spiders and ca
 - **Far, tiny insects.** SAM 3.1 does not find insects of about 30 pixels, filmed from far away. On a still
   camera, PolliCount then finds them from their movement and has Muse Spark confirm each one (see Evaluation).
   Their group is less reliable at this size, and a visit already under way when the video starts is missed
-  until the insect moves.
+  until the insect moves. From afar, an insect that leaves and comes back cannot be told from a new one, so
+  the app counts their visits per group but not individual insects (22 counted for 10 on the test clips below).
+  Two fixes were tried and rejected on the evidence: a second opinion from SAM 3.1 on enlarged crops (it misses
+  the real insects too) and crops from the full-resolution original (Muse Spark then accepts more false tracks).
 
 ## Evaluation
 
