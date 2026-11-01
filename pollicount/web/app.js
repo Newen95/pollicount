@@ -321,20 +321,31 @@ function renderTimeline(record) {
   timeline.replaceChildren();
   const duration = videoDuration();
   if (!record.visits.length || !duration) return;
-  timeline.append(lane("All visitors", record.visits, duration, "lane-all"));
+
+  const all = lane("All visitors", record.visits, duration, "lane-all");
   const each = el("div", { className: "lanes-each", hidden: true });
   for (const visitor of visitors.values()) {
     each.append(lane(visitor.name, visitor.visits, duration, "", () => openVisitor(visitor.id)));
   }
-  const label = (open) => (open ? "Hide each visitor" : `Show each visitor (${visitors.size})`);
-  const toggle = el("button", { className: "toggle lanes-toggle", type: "button", textContent: label(false) });
-  toggle.setAttribute("aria-expanded", "false");
-  toggle.addEventListener("click", () => {
-    each.hidden = !each.hidden;
-    toggle.setAttribute("aria-expanded", String(!each.hidden));
-    toggle.textContent = label(!each.hidden);
+  const chevron = el("button", { className: "chevron", type: "button" });
+  chevron.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  const setOpen = (open) => {
+    each.hidden = !open;
+    all.classList.toggle("open", open);
+    chevron.setAttribute("aria-expanded", String(open));
+    chevron.setAttribute("aria-label", open ? "Hide each visitor" : `Show each visitor (${visitors.size})`);
+  };
+  setOpen(false);
+  chevron.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setOpen(each.hidden);
   });
-  timeline.append(toggle, each);
+  // The whole row opens the lanes; its segments still jump to their visit.
+  all.addEventListener("click", (event) => {
+    if (!event.target.closest(".visit")) setOpen(each.hidden);
+  });
+  all.querySelector(".lane-count").append(chevron);
+  timeline.append(all, each);
   timeline.hidden = false;
 }
 

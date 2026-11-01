@@ -143,6 +143,8 @@ h1 {
   transition: transform 120ms ease, background-color 120ms ease;
 }
 
+.button:hover { background: var(--surface); }
+.button.primary:hover { background: var(--moss); }
 .button:active { transform: scale(0.97); }
 .button.primary { background: var(--ink); color: var(--sky); }
 .button.small { min-height: 40px; padding: 0 16px; font-size: 0.9375rem; }
@@ -226,7 +228,7 @@ h1 {
   gap: 12px;
 }
 
-.playback { margin-top: 14px; }
+.playback { margin-top: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 
 .play {
   justify-self: start;
@@ -245,6 +247,7 @@ h1 {
 .play svg { width: 22px; height: 22px; fill: currentColor; }
 .play .icon-play, .play.paused .icon-pause { display: none; }
 .play.paused .icon-play { display: inline; }
+.play:hover { background: var(--moss); }
 .play:focus-visible { outline: 3px solid var(--pollen); outline-offset: 3px; }
 
 #scrub {
@@ -267,22 +270,26 @@ h1 {
 #scrub::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line); }
 #scrub::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--pollen); }
 
+/* One handle shape everywhere: an upright bar in the colour of its lane, ringed with the page colour
+   so it stays visible over a segment of the same colour. */
 #scrub::-webkit-slider-thumb {
-  width: 16px;
-  height: 16px;
-  margin-top: -6px;
-  border: 3px solid var(--ink);
-  border-radius: 50%;
+  width: 5px;
+  height: 20px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: 3px;
   background: var(--pollen);
+  box-shadow: 0 0 0 2px var(--sky);
   -webkit-appearance: none;
 }
 
-#scrub::-moz-range-thumb { width: 10px; height: 10px; border: 3px solid var(--ink); border-radius: 50%; background: var(--pollen); }
+#scrub::-moz-range-thumb { width: 5px; height: 20px; border: 0; border-radius: 3px; background: var(--pollen); box-shadow: 0 0 0 2px var(--sky); }
+#scrub:hover::-webkit-slider-thumb { height: 24px; margin-top: -10px; }
 #scrub:focus-visible { outline: 3px solid var(--pollen); outline-offset: 4px; border-radius: 4px; }
 
 .clock { font-size: 0.875rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 
-.timeline { margin-top: 10px; display: grid; gap: 2px; }
+.timeline { margin-top: 12px; display: grid; gap: 2px; }
 .lane { min-height: 26px; }
 
 .lane-name {
@@ -298,6 +305,7 @@ h1 {
 }
 
 button.lane-name { cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+button.lane-name:hover { color: var(--uv); text-decoration-color: currentColor; }
 button.lane-name:focus-visible { outline: 3px solid var(--pollen); outline-offset: 2px; }
 .lane-all .lane-name { color: var(--ink); font-weight: 800; }
 .lane-count { font-size: 0.75rem; color: var(--moss); text-align: right; font-variant-numeric: tabular-nums; }
@@ -323,24 +331,56 @@ button.lane-name:focus-visible { outline: 3px solid var(--pollen); outline-offse
 /* A taller invisible hit area keeps thin segments easy to tap. */
 .visit::after { content: ""; position: absolute; inset: -8px -3px; }
 .lane-all .visit { background: var(--uv); }
-.visit:hover { filter: brightness(0.9); }
+.visit:hover { filter: brightness(0.85); transform: scaleY(1.5); }
 .visit:focus-visible { outline: 3px solid var(--uv); outline-offset: 3px; }
 
 .playhead {
   position: absolute;
   z-index: 1;
-  top: 2px;
-  bottom: 2px;
+  top: 1px;
+  bottom: 1px;
   left: 0;
-  width: 2px;
-  margin-left: -1px;
-  border-radius: 1px;
-  background: var(--ink);
+  width: 5px;
+  margin-left: -2.5px;
+  border-radius: 3px;
+  background: var(--pollen);
+  box-shadow: 0 0 0 2px var(--sky);
   pointer-events: none;
 }
 
-.lanes-toggle { padding: 4px 0 2px; font-size: 0.8125rem; }
-.lanes-each { display: grid; gap: 2px; }
+.lane-all .playhead { background: var(--uv); }
+
+/* "All visitors" is one big toggle: the row opens the visitor lanes, the chevron says so. */
+.lane-all {
+  margin: 0 -8px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.lane-all:hover { border-color: var(--uv); background: var(--surface); }
+.lane-all .lane-count { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+
+.chevron {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.chevron svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 160ms ease; }
+.lane-all.open .chevron svg { transform: rotate(180deg); }
+.chevron:hover { background: var(--line); }
+.chevron:focus-visible { outline: 3px solid var(--pollen); outline-offset: 2px; }
+.lanes-each { display: grid; gap: 2px; margin-top: 4px; }
 
 @media (max-width: 480px) {
   .playback, .lane { --label-col: 5rem; --end-col: 4.75rem; gap: 8px; }
@@ -414,6 +454,7 @@ button.lane-name:focus-visible { outline: 3px solid var(--pollen); outline-offse
 
 .toggle::before { content: "+ "; }
 .toggle[aria-expanded="true"]::before { content: "- "; }
+.toggle:hover { text-decoration: underline; text-underline-offset: 3px; }
 .toggle:focus-visible { outline: 3px solid var(--pollen); outline-offset: 2px; }
 
 .details { grid-column: 1 / -1; display: grid; gap: 14px; }
@@ -440,6 +481,7 @@ button.lane-name:focus-visible { outline: 3px solid var(--pollen); outline-offse
   cursor: pointer;
 }
 
+.when button:hover { border-color: var(--pollen); background: var(--pollen-soft); }
 .when button:focus-visible { outline: 3px solid var(--pollen); outline-offset: 2px; }
 
 .grain {
