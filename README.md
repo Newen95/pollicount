@@ -68,6 +68,8 @@ every visit (insect, flower, start, duration) for finer analyses. Spiders and ca
   Their group is less reliable at this size, and a visit already under way when the video starts is missed
   until the insect moves. From afar, an insect that leaves and comes back cannot be told from a new one, so
   the app counts their visits per group but not individual insects (22 counted for 10 on the test clips below).
+  Frames shaken by a gust of wind are left out, so a small insect that lands during a gust is dated after it
+  (by about 4 s on test video T7): tracing tracks through the gust followed moving leaves instead.
   Two fixes were tried and rejected on the evidence: a second opinion from SAM 3.1 on enlarged crops (it misses
   the real insects too) and crops from the full-resolution original (Muse Spark then accepts more false tracks).
 
