@@ -126,6 +126,7 @@ def create_app(
     tracker: Callable[[Path], pipeline.Tracker],
     classifier: pipeline.Classifier | None,
     limits: Limits | None = None,
+    namer: pipeline.Namer | None = None,
 ) -> FastAPI:
     """``tracker`` builds a tracker from a cache directory, so tests can inject a fake one."""
     limits = limits or Limits()
@@ -160,7 +161,9 @@ def create_app(
                     f"This video lasts {duration / 60:.1f} min. Videos are limited to "
                     f"{limits.max_video_s / 60:g} min here: trim it and upload it again."
                 )
-            analysis = pipeline.analyse(source, job.dir, tracker(data_dir / "sam-cache"), classifier, progress=progress)
+            analysis = pipeline.analyse(
+                source, job.dir, tracker(data_dir / "sam-cache"), classifier, progress=progress, namer=namer
+            )
             job.result = analysis.to_json()
             job.status = "done"
         except Exception as error:  # the job must never hang in "running"
@@ -262,4 +265,5 @@ def production_app() -> FastAPI:
             max_video_s=float(os.environ.get("POLLICOUNT_MAX_VIDEO_S", 120)),
             max_per_hour=int(os.environ.get("POLLICOUNT_MAX_PER_HOUR", 20)),
         ),
+        None if backend == "none" else pipeline.model_namer(backend),
     )

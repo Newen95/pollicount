@@ -6,6 +6,7 @@
 phone video
   -> video.to_sam_mp4        H.264 MP4, fps and size chosen for cost
   -> sam.track  x2           "insect" and "flower" tracks (SAM 3.1, cached)
+  -> classify.name_plant     only when no flower is found: Muse Spark names the plant, SAM tracks that name
   -> flowers.group_touching  touching flowers merged into one head (umbels, spikes)
   -> motion.detect           still camera only: small insects SAM missed, found from their movement
   -> visits.find_visits      insect still on a flower for >= 0.3 s

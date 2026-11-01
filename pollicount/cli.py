@@ -57,6 +57,7 @@ def _analyse(args: argparse.Namespace) -> pipeline.Analysis:
         None if args.backend == "none" else pipeline.model_classifier(args.backend),
         settings,
         progress=_printer(),
+        namer=None if args.backend == "none" else pipeline.model_namer(args.backend),
     )
 
 

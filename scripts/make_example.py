@@ -28,13 +28,18 @@ def main() -> None:
 
     work = Path("outputs/work") / args.id
     analysis = pipeline.analyse(
-        args.video, work, pipeline.sam_tracker(Path(".cache/sam")), pipeline.model_classifier(args.backend)
+        args.video,
+        work,
+        pipeline.sam_tracker(Path(".cache/sam")),
+        pipeline.model_classifier(args.backend),
+        namer=pipeline.model_namer(args.backend),
     )
     folder = args.out / args.id
     folder.mkdir(parents=True, exist_ok=True)
     shutil.copy(analysis.clip, folder / "clip.mp4")
     shutil.rmtree(folder / "crops", ignore_errors=True)
-    shutil.copytree(work / "crops", folder / "crops", dirs_exist_ok=True)
+    if (work / "crops").exists():
+        shutil.copytree(work / "crops", folder / "crops")
     (folder / "result.json").write_text(json.dumps(analysis.to_json()), encoding="utf-8")
     first = min((v.start_s for v in analysis.visits), default=0.0)
     video.still(folder / "clip.mp4", first + 0.5, folder / "poster.jpg")

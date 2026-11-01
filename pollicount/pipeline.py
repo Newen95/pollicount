@@ -14,6 +14,8 @@ from .visits import Visit, VisitRule, find_visits
 Tracker = Callable[[Path, str, Callable[[int], None]], list[Track]]
 """Tracks one concept in a clip, reporting the last frame it has processed."""
 Classifier = Callable[[list[Path]], classify.Classification]
+Namer = Callable[[Path], str | None]
+"""Common name of the plant in a frame, or None."""
 Progress = Callable[[str, float], None]
 """Receives a stage name and the overall progress, from 0 to 1."""
 
@@ -109,6 +111,11 @@ def model_classifier(backend_name: str) -> Classifier:
     return lambda crops: classify.classify_crops(crops, backend)
 
 
+def model_namer(backend_name: str) -> Namer:
+    backend = classify.BACKENDS[backend_name]
+    return lambda frame: classify.name_plant(frame, backend)
+
+
 def analyse(
     source: Path,
     work_dir: Path,
@@ -116,6 +123,7 @@ def analyse(
     classifier: Classifier | None,
     settings: Settings | None = None,
     progress: Progress | None = None,
+    namer: Namer | None = None,
 ) -> Analysis:
     settings = settings or Settings()
 
@@ -142,6 +150,11 @@ def analyse(
     insects = tracker(clip, settings.insect_prompt, frames_done("tracking insects", 0.1))
     report("tracking flowers", 0.4)
     flowers = tracker(clip, settings.flower_prompt, frames_done("tracking flowers", 0.4))
+    if not flowers and namer:
+        # Some flowers (lavender spikes, for one) are not seen as "flower" but are found by the plant's name.
+        plant = namer(video.still(clip, info.duration_s / 2, work_dir / "plant.jpg", width=info.width))
+        if plant:
+            flowers = tracker(clip, plant, frames_done("tracking flowers", 0.4))
     if settings.group_flowers:
         # Camera offsets are left out: measured on blurred pans they split heads more than they help.
         flowers = flower_units.group_touching(

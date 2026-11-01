@@ -105,6 +105,33 @@ def _image_part(path: Path) -> dict:
 
 NO_ANSWER = "no answer"
 
+PLANT_PROMPT = """This frame comes from a video of a flower patch. What is the flowering plant?
+Give its common English name in one to three words, as a gardener would say it (for example "lavender",
+"wild carrot", "apple tree"). Reply with JSON only: {"plant": "..."}"""
+
+_PLANT_NAME = re.compile(r"[a-z]+(?: [a-z]+){0,2}")
+
+
+def name_plant(frame: Path, backend: Backend, client=None, max_tokens: int = 4000) -> str | None:
+    """Common name of the plant in ``frame``, used as a detection prompt when "flower" finds nothing.
+    The reply is untrusted: only one to three plain lowercase words are accepted."""
+    if client is None:
+        from openai import OpenAI
+
+        key = os.environ[backend.api_key_env] if backend.api_key_env else "none"
+        client = OpenAI(base_url=backend.base_url, api_key=key)
+    extra = {"reasoning_effort": backend.reasoning_effort} if backend.reasoning_effort else {}
+    content = [_image_part(frame), {"type": "text", "text": PLANT_PROMPT}]
+    response = client.chat.completions.create(
+        model=backend.model, messages=[{"role": "user", "content": content}], max_tokens=max_tokens, **extra
+    )
+    match = re.search(r"\{.*\}", response.choices[0].message.content or "", re.DOTALL)
+    try:
+        name = str(json.loads(match.group(0)).get("plant", "")).strip().lower() if match else ""
+    except json.JSONDecodeError:
+        return None
+    return name if _PLANT_NAME.fullmatch(name) and name != "flower" else None
+
 
 def classify_crops(crops: list[Path], backend: Backend, client=None, max_tokens: int = 8000) -> Classification:
     """One request with every crop. A reply cut short by reasoning is retried once with twice the budget;

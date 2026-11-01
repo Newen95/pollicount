@@ -85,3 +85,18 @@ def test_motion_candidates_already_tracked_by_sam_are_left_out():
 
     assert pipeline._seen_by(same, [sam_track])
     assert not pipeline._seen_by(other, [sam_track])
+
+
+def test_flowers_missed_as_flower_are_tracked_by_the_plant_name(source: Path, tmp_path: Path):
+    asked: list[str] = []
+
+    def tracker(clip, concept, on_frame=None):
+        asked.append(concept)
+        return fake_tracker(clip, "flower" if concept == "lavender" else "insect") if concept != "flower" else []
+
+    analysis = pipeline.analyse(
+        source, tmp_path / "work", tracker, lambda crops: Classification("bumblebees", 0.9), namer=lambda f: "lavender"
+    )
+
+    assert asked == ["insect", "flower", "lavender"]
+    assert [(v.insect_id, v.flower_id) for v in analysis.visits] == [("1", "10")]
