@@ -502,6 +502,8 @@ function renderPane(row) {
     }
     const farVisits = record.visits.filter((v) => far.has(v.insect)).length;
     if (farVisits) {
+      // From afar, missed visits (an insect resting out of sight of the motion model) make the total time unreliable.
+      items.splice(3, 1);
       items.splice(1, 1);
       if (visitors.size) items.splice(1, 0, ["Pollinators seen close up", String(visitors.size)]);
     }
