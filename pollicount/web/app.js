@@ -624,11 +624,16 @@ function draw() {
     if (!box) continue;
     const [x1, y1, x2, y2] = box.map((v, i) => (i % 2 ? y + v * scale : x + v * scale));
     if (track.kind === "flower") {
+      // A dark halo under the dashes keeps the outline readable on white petals and pale leaves.
+      ctx.beginPath();
+      ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2, 0, 0, Math.PI * 2);
+      ctx.setLineDash([]);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "rgba(16, 32, 26, 0.75)";
+      ctx.stroke();
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = uv;
-      ctx.beginPath();
-      ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
       continue;
