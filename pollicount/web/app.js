@@ -624,8 +624,8 @@ function draw() {
     if (!box) continue;
     const [x1, y1, x2, y2] = box.map((v, i) => (i % 2 ? y + v * scale : x + v * scale));
     if (track.kind === "flower") {
-      ctx.setLineDash([4, 6]);
-      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.lineWidth = 2.5;
       ctx.strokeStyle = uv;
       ctx.beginPath();
       ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2, 0, 0, Math.PI * 2);
@@ -633,6 +633,8 @@ function draw() {
       ctx.setLineDash([]);
       continue;
     }
+    // Motion also picks up leaves in the wind: only the candidates confirmed as visitors are drawn.
+    if (track.from_motion && !track.visiting) continue;
     const visiting = activeVisit(track.id, time);
     drawTrail(track, frame, x, y, scale, pollen);
     ctx.strokeStyle = pollen;
