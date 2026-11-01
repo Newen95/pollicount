@@ -82,10 +82,10 @@ five together:
 
 | | Annotated | SAM 3.1 alone | With motion candidates |
 |---|---|---|---|
-| Visits found (matched) | 55 | 0 | 83 (41) |
-| Visit precision / recall / F1 | | 0 / 0 / 0 | 0.49 / 0.75 / 0.59 |
-| Distinct visitors | 10 | 0 | 19 |
-| Seconds on flowers | 312 | 0 | 199 |
+| Visits found (matched) | 55 | 0 | 49 (35) |
+| Visit precision / recall / F1 | | 0 / 0 / 0 | 0.71 / 0.64 / 0.67 |
+| Distinct visitors | 10 | 0 | 22 |
+| Seconds on flowers | 312 | 0 | 213 |
 
 ## Credits
 
