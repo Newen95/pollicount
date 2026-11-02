@@ -85,7 +85,7 @@ let currentId = null;
 let visitors = new Map();
 let far = new Set();
 let hoverId = null;
-let focus = null;
+let spot = null;
 /** Insect ids to stand out on the video, from the row selected in the list (null: all equal). */
 const FAR_NOTE = "From this distance, PolliCount counts visits but cannot tell individual insects apart.";
 let rows = [];
@@ -427,7 +427,7 @@ function select(row, focus = true) {
       return i < path.length - 1 ? [name, svg(CHEVRON)] : [name];
     }),
   );
-  focus = row.kind === "insect" ? new Set([row.data.id]) : row.kind === "group" ? new Set(row.visits.map((v) => v.insect)) : null;
+  spot = row.kind === "insect" ? new Set([row.data.id]) : row.kind === "group" ? new Set(row.visits.map((v) => v.insect)) : null;
   $("pane").replaceChildren(renderPane(row));
   draw(true);
   if (focus) row.focus();
@@ -618,9 +618,19 @@ function draw() {
   const uv = css.getPropertyValue("--uv").trim();
   const pollen = css.getPropertyValue("--pollen").trim();
 
-  const hosts = new Set(result.record.visits.filter((v) => time >= v.start_s && time <= v.start_s + v.duration_s).map((v) => v.flower));
+  const now = result.record.visits.filter((v) => time >= v.start_s && time <= v.start_s + v.duration_s);
+  const hosts = new Set(now.map((v) => v.flower));
+  const spotHosts = new Set(now.filter((v) => spot && spot.has(v.insect)).map((v) => v.flower));
   // The selected or hovered insect is drawn last, so its label sits on top of a neighbour's.
-  const front = (t) => (t.id === hoverId || (focus && focus.has(t.id)) ? 1 : 0);
+  const front = (t) => (t.id === hoverId || (spot && spot.has(t.id)) ? 1 : 0);
+  if (spot) {
+    const lit = tracks
+      .filter((t) => t.kind === "insect" && spot.has(t.id))
+      .map((t) => boxAt(t, frame))
+      .filter(Boolean)
+      .map((b) => b.map((v, i) => (i % 2 ? y + v * scale : x + v * scale)));
+    spotlight(lit);
+  }
   for (const track of [...tracks].sort((a, b) => front(a) - front(b))) {
     const box = boxAt(track, frame);
     if (!box) continue;
@@ -629,6 +639,7 @@ function draw() {
       // Only the flower an insect is visiting is outlined: it shows why a visit is counted, while outlines of
       // every detected flower (merged heads, false flowers) clutter the picture.
       if (!hosts.has(track.id)) continue;
+      ctx.globalAlpha = spot && !spotHosts.has(track.id) ? 0.35 : 1;
       // A dark halo under the dashes keeps the outline readable on white petals and pale leaves.
       ctx.beginPath();
       ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2, 0, 0, Math.PI * 2);
@@ -641,17 +652,18 @@ function draw() {
       ctx.strokeStyle = uv;
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
       continue;
     }
     // Motion also picks up leaves in the wind: only the candidates confirmed as visitors are drawn.
     if (track.from_motion && !track.visiting) continue;
     const visiting = activeVisit(track.id, time);
-    const picked = focus && focus.has(track.id);
+    const picked = spot && spot.has(track.id);
     const hovered = hoverId === track.id;
     // The selected insect (or group) stands out; the others step back.
-    ctx.globalAlpha = focus && !picked ? 0.35 : 1;
+    ctx.globalAlpha = spot && !picked ? 0.35 : 1;
     drawTrail(track, frame, x, y, scale, pollen);
-    ctx.globalAlpha = focus && !picked ? 0.35 : 1;
+    ctx.globalAlpha = spot && !picked ? 0.35 : 1;
     if (picked || hovered) {
       ctx.fillStyle = "rgba(224, 185, 68, 0.14)";
       ctx.fillRect(x1 - 3, y1 - 3, x2 - x1 + 6, y2 - y1 + 6);
@@ -665,7 +677,7 @@ function draw() {
     const grow = hovered ? 3 : 0;
     corners(x1 - 3 - grow, y1 - 3 - grow, x2 + 3 + grow, y2 + 3 + grow);
     ctx.shadowBlur = 0;
-    if (track.visiting) label(visitors.get(track.id)?.name ?? groupInfo(track.group).one, x1 - 3, y1 - 6);
+    if (track.visiting) label(visitors.get(track.id)?.name ?? groupInfo(track.group).one, x1 - 3, y1 - 6, picked);
     ctx.globalAlpha = 1;
   }
 }
@@ -699,17 +711,41 @@ function drawTrail(track, frame, x, y, scale, color) {
   ctx.globalAlpha = 1;
 }
 
-function label(text, x, y) {
+function label(text, x, y, lit = false) {
   ctx.font = "600 15px 'Cormorant Garamond', Georgia, serif";
   const w = ctx.measureText(text).width + 18;
   const top = Math.max(0, y - 24);
-  ctx.fillStyle = "rgba(16, 32, 26, 0.85)";
+  ctx.fillStyle = lit ? "#c8a45a" : "rgba(16, 32, 26, 0.85)";
   ctx.fillRect(x, top, w, 24);
   ctx.strokeStyle = "#c8a45a";
   ctx.lineWidth = 1;
   ctx.strokeRect(x + 0.5, top + 0.5, w - 1, 23);
-  ctx.fillStyle = "#ece6d6";
+  ctx.fillStyle = lit ? "#10201a" : "#ece6d6";
   ctx.fillText(text, x + 9, top + 17);
+}
+
+/** Dims the picture outside the given boxes (with a margin), like a spotlight on the selected insects. */
+const veil = document.createElement("canvas");
+function spotlight(boxes) {
+  if (!boxes.length) return;
+  veil.width = canvas.width;
+  veil.height = canvas.height;
+  const v = veil.getContext("2d");
+  v.setTransform(ctx.getTransform());
+  v.fillStyle = "rgba(8, 16, 13, 0.5)";
+  v.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  v.globalCompositeOperation = "destination-out";
+  v.fillStyle = "#000";
+  for (const [x1, y1, x2, y2] of boxes) {
+    const m = Math.max(24, 0.4 * Math.max(x2 - x1, y2 - y1));
+    v.beginPath();
+    v.roundRect(x1 - m, y1 - m, x2 - x1 + 2 * m, y2 - y1 + 2 * m, m);
+    v.fill();
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(veil, 0, 0);
+  ctx.restore();
 }
 
 function loop() {
