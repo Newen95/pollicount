@@ -639,7 +639,7 @@ function draw() {
       // Only the flower an insect is visiting is outlined: it shows why a visit is counted, while outlines of
       // every detected flower (merged heads, false flowers) clutter the picture.
       if (!hosts.has(track.id)) continue;
-      ctx.globalAlpha = spot && !spotHosts.has(track.id) ? 0.35 : 1;
+      ctx.globalAlpha = spot && !spotHosts.has(track.id) ? 0.55 : 1;
       // A dark halo under the dashes keeps the outline readable on white petals and pale leaves.
       ctx.beginPath();
       ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2, 0, 0, Math.PI * 2);
@@ -661,9 +661,9 @@ function draw() {
     const picked = spot && spot.has(track.id);
     const hovered = hoverId === track.id;
     // The selected insect (or group) stands out; the others step back.
-    ctx.globalAlpha = spot && !picked ? 0.35 : 1;
+    ctx.globalAlpha = spot && !picked ? 0.55 : 1;
     drawTrail(track, frame, x, y, scale, pollen);
-    ctx.globalAlpha = spot && !picked ? 0.35 : 1;
+    ctx.globalAlpha = spot && !picked ? 0.55 : 1;
     if (picked || hovered) {
       ctx.fillStyle = "rgba(224, 185, 68, 0.14)";
       ctx.fillRect(x1 - 3, y1 - 3, x2 - x1 + 6, y2 - y1 + 6);
@@ -732,7 +732,7 @@ function spotlight(boxes) {
   veil.height = canvas.height;
   const v = veil.getContext("2d");
   v.setTransform(ctx.getTransform());
-  v.fillStyle = "rgba(8, 16, 13, 0.5)";
+  v.fillStyle = "rgba(8, 16, 13, 0.3)";
   v.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
   v.globalCompositeOperation = "destination-out";
   v.fillStyle = "#000";
