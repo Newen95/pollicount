@@ -8,7 +8,7 @@ phone video
   -> sam.track  x2           "insect" and "flower" tracks (SAM 3.1, cached)
   -> classify.name_plant     only when no flower is found: Muse Spark names the plant, SAM tracks that name
   -> flowers.group_touching  touching flowers merged into one head (umbels, spikes)
-  -> motion.detect           still camera only: small insects SAM missed, found from their movement
+  -> motion.detect           still camera and no visit found by SAM: small insects, found from their movement
   -> visits.find_visits      insect still on a flower for >= 0.3 s
   -> video.crop              best frames of each visiting insect
   -> classify.classify_crops FIT Count group, or "not an insect" (motion candidates need confidence >= 0.3)

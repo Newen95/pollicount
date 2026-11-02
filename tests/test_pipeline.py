@@ -100,3 +100,14 @@ def test_flowers_missed_as_flower_are_tracked_by_the_plant_name(source: Path, tm
 
     assert asked == ["insect", "flower", "lavender"]
     assert [(v.insect_id, v.flower_id) for v in analysis.visits] == [("1", "10")]
+
+
+def test_motion_candidates_are_cropped_only_away_from_tracked_insects():
+    bee = Track("0", "insect", {f: Box(100, 100, 140, 140) for f in range(10)})
+    petals = Track(
+        "m1",
+        "insect",
+        {**{f: Box(160, 100, 175, 115) for f in range(5)}, **{f: Box(600, 400, 615, 415) for f in range(5, 10)}},
+    )
+
+    assert sorted(pipeline._alone(petals, [bee]).boxes) == [5, 6, 7, 8, 9]

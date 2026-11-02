@@ -65,7 +65,9 @@ every visit (insect, flower, start, duration) for finer analyses. Spiders and ca
   A visit that starts during a pan may be dated up to about half a second late, and flowers may be mixed up
   there. Counts are not affected, and the app warns when the camera moved.
 - **Far, tiny insects.** SAM 3.1 does not find insects of about 30 pixels, filmed from far away. On a still
-  camera, PolliCount then finds them from their movement and has Muse Spark confirm each one (see Evaluation).
+  camera where SAM finds no visit, PolliCount then finds them from their movement and has Muse Spark confirm
+  each one (see Evaluation). When SAM does follow insects, motion is not used: moving blobs are then mostly
+  petals stirred by the wind or by those insects, and their crops would show the real insect next to them.
   Their group is less reliable at this size, and a visit already under way when the video starts is missed
   until the insect moves. From afar, an insect that leaves and comes back cannot be told from a new one, so
   the app counts their visits per group but not individual insects (22 counted for 10 on the test clips below).

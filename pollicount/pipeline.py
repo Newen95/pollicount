@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import classify, export, motion, sam, video
 from . import flowers as flower_units
-from .geometry import Track
+from .geometry import Box, Track
 from .visits import Visit, VisitRule, find_visits
 
 Tracker = Callable[[Path, str, Callable[[int], None]], list[Track]]
@@ -31,7 +31,7 @@ class Settings:
     group_flowers: bool = True
     """Merge touching flowers into one head (umbels, spikes), the unit FIT Count counts."""
     motion_candidates: bool = True
-    """On a still camera, add the insects found from their movement that SAM missed (too small)."""
+    """On a still camera where SAM finds no visit, add the insects found from their movement (too small for SAM)."""
     motion_min_confidence: float = 0.3
     """Motion candidates are kept only when the classifier calls them an insect with this confidence."""
 
@@ -86,6 +86,18 @@ class Analysis:
             "record": self.record,
             "camera_moves": [list(m) for m in self.camera_moves],
         }
+
+
+def _alone(candidate: Track, tracks: list[Track]) -> Track:
+    """The candidate on the frames where its crop (see ``video.crop``) holds no part of the other tracks."""
+    kept = {}
+    for f, box in candidate.boxes.items():
+        half = max(max(box.width, box.height) * 1.6, 96) / 2
+        cx, cy = box.center
+        window = Box(cx - half, cy - half, cx + half, cy + half)
+        if not any(f in t.boxes and t.boxes[f].inside_fraction(window) > 0 for t in tracks):
+            kept[f] = box
+    return Track(candidate.object_id, candidate.concept, kept, {f: candidate.confidences.get(f, 1.0) for f in kept})
 
 
 def _seen_by(candidate: Track, tracks: list[Track]) -> bool:
@@ -166,8 +178,13 @@ def analyse(
 
     report("finding visits", 0.7)
     small: set[str] = set()
-    if settings.motion_candidates and classifier and not camera_moves:
-        extra = [t for t in motion.detect(clip, info.width, info.height, info.fps) if not _seen_by(t, insects)]
+    # Motion is for videos whose insects SAM cannot see. When SAM already follows insects on the flowers,
+    # moving blobs are mostly petals and leaves stirred by those insects or the wind.
+    sam_visits = find_visits(insects, flowers, info.fps, settings.rule)
+    if settings.motion_candidates and classifier and not camera_moves and not sam_visits:
+        extra = [
+            t for t in motion.detect(clip, info.width, info.height, info.fps, known=insects) if not _seen_by(t, insects)
+        ]
         small = {t.object_id for t in extra}
         insects = insects + extra
     visits = find_visits(insects, flowers, info.fps, settings.rule)
@@ -178,9 +195,18 @@ def analyse(
     if classifier:
         for i, insect in enumerate(visiting):
             report("identifying insects", 0.75 + 0.2 * i / len(visiting))
+            # A motion candidate is judged only on crops without a tracked insect in view: a crop of moving
+            # petals next to a real bee would otherwise show the bee and be confirmed.
+            shown = (
+                _alone(insect, [t for t in insects if t.object_id not in small])
+                if insect.object_id in small
+                else insect
+            )
+            if not shown.boxes:
+                continue
             paths = [
                 video.crop(clip, f, info.fps, insect.boxes[f], work_dir / "crops" / f"{insect.object_id}_{f}.png")
-                for f in insect.best_frames(settings.crops_per_insect)
+                for f in shown.best_frames(settings.crops_per_insect)
             ]
             groups[insect.object_id] = classifier(paths)
             crops[insect.object_id] = [p.name for p in paths]
