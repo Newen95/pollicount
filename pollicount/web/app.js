@@ -807,6 +807,10 @@ $("scrub").addEventListener("input", (e) => seek((e.target.value / 1000) * (vide
 
 document.addEventListener("keydown", (e) => {
   if ($("analysis").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "Escape" && spot && rows.length) {
+    e.preventDefault();
+    return select(rows[0], e.target.closest(".ledger") !== null);
+  }
   if (e.target.closest(".ledger, input, textarea, select")) return;
   const frame = 1 / (result?.video.fps || 30);
   const action = {
@@ -861,6 +865,8 @@ canvas.addEventListener("pointerleave", () => {
 
 canvas.addEventListener("click", (event) => {
   const hit = insectAt(event);
+  // A click in the dark around the spotlight turns it off.
+  if (!hit && spot) return select(rows[0], false);
   if (hit && visitors.has(hit.id)) select($(`row-insect-${hit.id}`), false);
   else if (hit && far.has(hit.id) && hit.group) select($(`row-${hit.group.replace(/\W+/g, "-")}`), false);
 });
