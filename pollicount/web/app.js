@@ -863,9 +863,17 @@ canvas.addEventListener("pointerleave", () => {
   draw(true);
 });
 
+// A click in the void turns the spotlight off: anywhere but a control, the detail panel being read, or the
+// end of a text selection. On the video, only a click beside the insects does.
+document.addEventListener("click", (event) => {
+  if (!spot || $("analysis").hidden || !rows.length) return;
+  if (event.target === canvas || String(getSelection()).trim()) return;
+  if (event.target.closest("button, a, input, label, select, textarea, [role=treeitem], .detail, .player, .tip")) return;
+  select(rows[0], false);
+});
+
 canvas.addEventListener("click", (event) => {
   const hit = insectAt(event);
-  // A click in the dark around the spotlight turns it off.
   if (!hit && spot) return select(rows[0], false);
   if (hit && visitors.has(hit.id)) select($(`row-insect-${hit.id}`), false);
   else if (hit && far.has(hit.id) && hit.group) select($(`row-${hit.group.replace(/\W+/g, "-")}`), false);
