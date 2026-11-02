@@ -104,7 +104,8 @@ Muse Spark (`scripts/make_plates.py`).
 
 Example videos (Wikimedia Commons): "Sphegina - 2018-05-26" by Pristurus (CC BY-SA 3.0), "Bumblebee on Lilac"
 by Limulus (CC BY-SA 4.0), "Nectaring activity of Danaus chrysippus - Plain Tiger (Female) on Lantana camara
-flower DSC 3003" by Sandipoutsider (CC BY-SA 4.0). The far-field example is a 2-minute excerpt of test video T7
+flower DSC 3003" by Sandipoutsider (CC BY-SA 4.0), two excerpts of "Bumble bees (Bombus) on thistle" by The
+Nature Box (CC BY-SA 3.0), "Pollinators (20210622-FPAC-KLS-0001)" by the USDA (public domain). The far-field example is a 2-minute excerpt of test video T7
 of the Monash dataset below.
 
 Evaluation data: Ratnayake, M. N., Amarathunga, D. C., Zaman, A., Dyer, A. G., Dorin, A. (2022).
