@@ -4,8 +4,8 @@ A frame counts as "on a flower" when the insect is nearly still and its centre, 
 half of the bottom third of its box (where the legs are in a side view), or the middle of its bottom edge
 (its feet, under wings folded upright) lies inside the flower box.
 Close-ups need the last two: open wings and the body stand above the flower the legs are touching.
-Short breaks (the tracker losing the insect, or the insect walking fast across its flower for up to a second)
-are bridged so one landing is not split in two.
+Breaks of up to 2 s on the same flower (the tracker losing the insect or the flower box flickering, the insect
+walking fast across its flower or onto the bracts under it) are bridged so one landing is not split in two.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ class VisitRule:
     max_speed: float = 2.0
     """Insect speed limit, in insect diagonals per second."""
     min_duration_s: float = 0.3
-    max_gap_s: float = 1.0
+    max_gap_s: float = 2.0
 
 
 @dataclass(frozen=True)

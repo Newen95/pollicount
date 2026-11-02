@@ -32,8 +32,14 @@ def test_short_tracking_dropout_does_not_split_a_visit():
 
 
 def test_long_absence_makes_two_visits():
-    insect = track("i1", "insect", perched([*range(10, 14), *range(30, 34)]))
+    insect = track("i1", "insect", perched([*range(10, 14), *range(40, 44)]))
     assert len(find_visits([insect], [FLOWER], FPS)) == 2
+
+
+def test_insect_off_its_flower_box_for_under_two_seconds_keeps_one_visit():
+    # 1.6 s away, as when the flower box flickers or a bumblebee walks onto the bracts under the florets.
+    insect = track("i1", "insect", perched([*range(10, 14), *range(30, 34)]))
+    assert [(v.start_frame, v.end_frame) for v in find_visits([insect], [FLOWER], FPS)] == [(10, 33)]
 
 
 def test_insect_flying_across_flower_is_not_a_visit():
