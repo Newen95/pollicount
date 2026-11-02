@@ -148,7 +148,7 @@ h1 { margin: 0; font: 600 clamp(2.6rem, 5vw, 4.1rem)/1.02 var(--serif); letter-s
 .frame { position: relative; width: 100%; aspect-ratio: var(--ratio, 16 / 9); margin: 0 auto; background: #0a1511; }
 .frame video, .frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .frame video { object-fit: contain; }
-.frame canvas { cursor: pointer; }
+.frame canvas { cursor: default; }
 .credit { margin: 10px 2px 0; color: var(--sage); font-size: 0.8125rem; }
 .credit a { color: var(--sage); text-underline-offset: 3px; }
 

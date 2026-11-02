@@ -84,6 +84,9 @@ let lastTime = -1;
 let currentId = null;
 let visitors = new Map();
 let far = new Set();
+let hoverId = null;
+let focus = null;
+/** Insect ids to stand out on the video, from the row selected in the list (null: all equal). */
 const FAR_NOTE = "From this distance, PolliCount counts visits but cannot tell individual insects apart.";
 let rows = [];
 
@@ -424,7 +427,9 @@ function select(row, focus = true) {
       return i < path.length - 1 ? [name, svg(CHEVRON)] : [name];
     }),
   );
+  focus = row.kind === "insect" ? new Set([row.data.id]) : row.kind === "group" ? new Set(row.visits.map((v) => v.insect)) : null;
   $("pane").replaceChildren(renderPane(row));
+  draw(true);
   if (focus) row.focus();
 }
 
@@ -614,7 +619,9 @@ function draw() {
   const pollen = css.getPropertyValue("--pollen").trim();
 
   const hosts = new Set(result.record.visits.filter((v) => time >= v.start_s && time <= v.start_s + v.duration_s).map((v) => v.flower));
-  for (const track of tracks) {
+  // The selected or hovered insect is drawn last, so its label sits on top of a neighbour's.
+  const front = (t) => (t.id === hoverId || (focus && focus.has(t.id)) ? 1 : 0);
+  for (const track of [...tracks].sort((a, b) => front(a) - front(b))) {
     const box = boxAt(track, frame);
     if (!box) continue;
     const [x1, y1, x2, y2] = box.map((v, i) => (i % 2 ? y + v * scale : x + v * scale));
@@ -639,13 +646,27 @@ function draw() {
     // Motion also picks up leaves in the wind: only the candidates confirmed as visitors are drawn.
     if (track.from_motion && !track.visiting) continue;
     const visiting = activeVisit(track.id, time);
+    const picked = focus && focus.has(track.id);
+    const hovered = hoverId === track.id;
+    // The selected insect (or group) stands out; the others step back.
+    ctx.globalAlpha = focus && !picked ? 0.35 : 1;
     drawTrail(track, frame, x, y, scale, pollen);
+    ctx.globalAlpha = focus && !picked ? 0.35 : 1;
+    if (picked || hovered) {
+      ctx.fillStyle = "rgba(224, 185, 68, 0.14)";
+      ctx.fillRect(x1 - 3, y1 - 3, x2 - x1 + 6, y2 - y1 + 6);
+      ctx.shadowColor = "rgba(224, 185, 68, 0.8)";
+      ctx.shadowBlur = 10;
+    }
     ctx.strokeStyle = pollen;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = picked || hovered ? 1.5 : 1;
     ctx.strokeRect(x1 - 3, y1 - 3, x2 - x1 + 6, y2 - y1 + 6);
-    ctx.lineWidth = visiting ? 3.5 : 2.5;
-    corners(x1 - 3, y1 - 3, x2 + 3, y2 + 3);
+    ctx.lineWidth = (visiting ? 3.5 : 2.5) + (picked || hovered ? 1 : 0);
+    const grow = hovered ? 3 : 0;
+    corners(x1 - 3 - grow, y1 - 3 - grow, x2 + 3 + grow, y2 + 3 + grow);
+    ctx.shadowBlur = 0;
     if (track.visiting) label(visitors.get(track.id)?.name ?? groupInfo(track.group).one, x1 - 3, y1 - 6);
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -757,19 +778,38 @@ video.addEventListener("loadedmetadata", () => {
   $("frame").style.width = `min(100%, calc(70dvh * ${ratio}))`;
 });
 
-canvas.addEventListener("click", (event) => {
-  if (!result) return;
+function insectAt(event) {
+  if (!result) return null;
   const rect = canvas.getBoundingClientRect();
   const { x, y, scale } = contentRect();
   const px = (event.clientX - rect.left - x) / scale;
   const py = (event.clientY - rect.top - y) / scale;
   const frame = Math.floor(video.currentTime * result.video.fps);
   const pad = 20 / scale;
-  const hit = tracks.find((t) => {
-    if (t.kind !== "insect") return false;
+  return tracks.find((t) => {
+    if (t.kind !== "insect" || !t.visiting) return false;
     const box = boxAt(t, frame);
     return box && px >= box[0] - pad && px <= box[2] + pad && py >= box[1] - pad && py <= box[3] + pad;
-  });
+  }) ?? null;
+}
+
+canvas.addEventListener("pointermove", (event) => {
+  const hit = insectAt(event);
+  const id = hit ? hit.id : null;
+  canvas.style.cursor = hit ? "pointer" : "default";
+  if (id !== hoverId) {
+    hoverId = id;
+    draw(true);
+  }
+});
+canvas.addEventListener("pointerleave", () => {
+  hoverId = null;
+  canvas.style.cursor = "default";
+  draw(true);
+});
+
+canvas.addEventListener("click", (event) => {
+  const hit = insectAt(event);
   if (hit && visitors.has(hit.id)) select($(`row-insect-${hit.id}`), false);
   else if (hit && far.has(hit.id) && hit.group) select($(`row-${hit.group.replace(/\W+/g, "-")}`), false);
 });
