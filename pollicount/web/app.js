@@ -515,7 +515,7 @@ function renderPane(row) {
         ["Pollinators", String(record.insects)],
         // The time is summed over insects; the share counts each moment once, so it never exceeds the video.
         ["Time on flowers", seconds(time), "all insects together"],
-        ["Flowers visited", `${Math.round(busyShare(record.visits) * 100)}%`, "of the video", false, "Share of the video with at least one insect on a flower"],
+        ["Time with a visitor", `${Math.round(busyShare(record.visits) * 100)}%`, "of the video", false, "Share of the video with at least one insect on a flower"],
       );
     } else if (visitors.size) {
       // From afar, insects cannot be told apart and missed visits make the total time unreliable.
