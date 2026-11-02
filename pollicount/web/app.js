@@ -73,7 +73,6 @@ const GROUPS = {
   },
 };
 
-const RATE_MIN_S = 60;
 
 const $ = (id) => document.getElementById(id);
 const video = $("video");
@@ -488,24 +487,19 @@ function renderPane(row) {
   const pane = el("section", { className: "pane" });
   const { record } = result;
   if (row.kind === "all") {
-    const duration = videoDuration();
     const time = onFlowers(record.visits);
-    const items = [
-      ["Visits", String(record.total_visits), "", true],
-      ["Pollinators", String(record.insects)],
-      ["Flower heads", String(record.flowers_tracked)],
-      ["Time on flowers", seconds(time), `${Math.round((time / (duration || 1)) * 100)}% of the video`],
-    ];
-    if (duration >= RATE_MIN_S && record.flowers_tracked > 0) {
-      const rate = record.total_visits / record.flowers_tracked / (duration / 60);
-      items.push(["Visit rate", rate.toFixed(1), "per head, per minute", false, "Visits per flower head, per minute of video"]);
-    }
+    // Flower heads are not shown: measured on the Monash videos, their count runs about 50% high.
     const farVisits = record.visits.filter((v) => far.has(v.insect)).length;
-    if (farVisits) {
-      // From afar, missed visits (an insect resting out of sight of the motion model) make the total time unreliable.
-      items.splice(3, 1);
-      items.splice(1, 1);
-      if (visitors.size) items.splice(1, 0, ["Pollinators seen close up", String(visitors.size)]);
+    const items = [["Visits", String(record.total_visits), "", true]];
+    if (!farVisits) {
+      items.push(
+        ["Pollinators", String(record.insects)],
+        // Summed over insects, so several at once can exceed the video: no share of the video is given.
+        ["Time on flowers", seconds(time), "all insects together"],
+      );
+    } else if (visitors.size) {
+      // From afar, insects cannot be told apart and missed visits make the total time unreliable.
+      items.push(["Pollinators seen close up", String(visitors.size)]);
     }
     pane.append(tally(items, "tally"));
     if (farVisits) {
@@ -619,11 +613,15 @@ function draw() {
   const uv = css.getPropertyValue("--uv").trim();
   const pollen = css.getPropertyValue("--pollen").trim();
 
+  const hosts = new Set(result.record.visits.filter((v) => time >= v.start_s && time <= v.start_s + v.duration_s).map((v) => v.flower));
   for (const track of tracks) {
     const box = boxAt(track, frame);
     if (!box) continue;
     const [x1, y1, x2, y2] = box.map((v, i) => (i % 2 ? y + v * scale : x + v * scale));
     if (track.kind === "flower") {
+      // Only the flower an insect is visiting is outlined: it shows why a visit is counted, while outlines of
+      // every detected flower (merged heads, false flowers) clutter the picture.
+      if (!hosts.has(track.id)) continue;
       // A dark halo under the dashes keeps the outline readable on white petals and pale leaves.
       ctx.beginPath();
       ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2, 0, 0, Math.PI * 2);
