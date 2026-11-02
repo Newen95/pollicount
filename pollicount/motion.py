@@ -176,9 +176,30 @@ def merge_tracklets(tracks: list[Track], fps: float, s: MotionSettings) -> list[
     return merged
 
 
-def detect(video: Path, width: int, height: int, fps: float, settings: MotionSettings | None = None) -> list[Track]:
+def detect(
+    video: Path,
+    width: int,
+    height: int,
+    fps: float,
+    settings: MotionSettings | None = None,
+    known: list[Track] | None = None,
+) -> list[Track]:
+    """Insect tracks from motion. Blobs on an insect already tracked in ``known`` are left out first:
+    otherwise a track of moving petals can pass over that insect, and its crops then show a real insect."""
     s = settings or MotionSettings()
-    return merge_tracklets(link(candidates(video, width, height, fps, s), fps, s), fps, s)
+    detections = candidates(video, width, height, fps, s)
+    if known:
+        detections = {f: kept for f, boxes in detections.items() if (kept := _unexplained(boxes, f, known))}
+    return merge_tracklets(link(detections, fps, s), fps, s)
+
+
+def _unexplained(boxes: list[Box], frame: int, known: list[Track]) -> list[Box]:
+    taken = [t.boxes[frame] for t in known if frame in t.boxes]
+    return [
+        b
+        for b in boxes
+        if not any(k.left <= b.center[0] <= k.right and k.top <= b.center[1] <= k.bottom for k in taken)
+    ]
 
 
 def candidates(video: Path, width: int, height: int, fps: float, s: MotionSettings) -> dict[int, list[Box]]:

@@ -97,3 +97,11 @@ def test_panning_camera_is_detected(tmp_path):
     start, end = moves[0]
     assert 0.8 <= start <= 1.2 and 1.7 <= end <= 2.2
     assert abs(offsets[-1][0] + 400) < 20  # the scene slid 400 px to the left
+
+
+def test_blobs_on_an_insect_already_tracked_are_left_out():
+    known = [Track("0", "insect", {5: Box(100, 100, 150, 150)})]
+    blobs = [Box(110, 110, 125, 125), Box(300, 300, 315, 315)]
+
+    assert motion._unexplained(blobs, 5, known) == [Box(300, 300, 315, 315)]
+    assert motion._unexplained(blobs, 6, known) == blobs
