@@ -468,6 +468,20 @@ $("ledger").addEventListener("keydown", (e) => {
 
 const onFlowers = (visits) => visits.reduce((sum, v) => sum + v.duration_s, 0);
 
+/** Share of the video during which at least one insect is on a flower (overlapping visits merged). */
+function busyShare(visits) {
+  const spans = visits.map((v) => [v.start_s, v.start_s + v.duration_s]).sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  let end = -Infinity;
+  for (const [a, b] of spans) {
+    if (b > end) {
+      total += b - Math.max(a, end);
+      end = b;
+    }
+  }
+  return Math.min(1, total / (videoDuration() || 1));
+}
+
 function tally(items, className = "tally compact") {
   const list = el("dl", { className });
   for (const [term, value, note, lead, tip] of items) {
@@ -499,8 +513,9 @@ function renderPane(row) {
     if (!farVisits) {
       items.push(
         ["Pollinators", String(record.insects)],
-        // Summed over insects, so several at once can exceed the video: no share of the video is given.
+        // The time is summed over insects; the share counts each moment once, so it never exceeds the video.
         ["Time on flowers", seconds(time), "all insects together"],
+        ["Flowers visited", `${Math.round(busyShare(record.visits) * 100)}%`, "of the video", false, "Share of the video with at least one insect on a flower"],
       );
     } else if (visitors.size) {
       // From afar, insects cannot be told apart and missed visits make the total time unreliable.
