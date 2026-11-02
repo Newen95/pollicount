@@ -194,12 +194,30 @@ function waitingScreen(title) {
   renderGhost();
 }
 
+/** Clears the previous result, when a new video is started from the results page. */
+function reset() {
+  result = null;
+  tracks = [];
+  rows = [];
+  spot = null;
+  hoverId = null;
+  visitors = new Map();
+  far = new Set();
+  progress.started = 0;
+  for (const id of ["results", "analysis-error", "download", "credit"]) $(id).hidden = true;
+  $("progress").hidden = false;
+  $("eta").textContent = "estimating";
+}
+
 async function start(file) {
   if (!file.type.startsWith("video/")) {
+    if (!$("analysis").hidden) return fail("This file is not a video. Pick a video of a flower patch.");
     $("start-error").textContent = "This file is not a video. Pick a video of a flower patch.";
     $("start-error").hidden = false;
     return;
   }
+  reset();
+  history.replaceState(null, "", "./");
   waitingScreen("Your video");
   video.src = URL.createObjectURL(file);
   video.play().catch(() => {});
@@ -243,6 +261,43 @@ async function listExamples() {
   }
   $("examples").hidden = false;
 }
+
+/* New video menu, on the results page */
+
+let panelFilled = false;
+async function fillPanel() {
+  if (panelFilled) return;
+  panelFilled = true;
+  const response = await fetch("api/examples").catch(() => null);
+  const examples = response?.ok ? await response.json() : [];
+  const list = $("panel-examples");
+  for (const example of examples) {
+    const poster = el("img", { src: `api/examples/${example.id}/poster`, alt: "", loading: "lazy" });
+    list.append(el("li", {}, el("a", { href: `?a=${example.id}` }, poster, el("span", { textContent: example.title }))));
+  }
+  list.previousElementSibling.hidden = !examples.length;
+}
+
+function setPanel(open) {
+  $("new-panel").hidden = !open;
+  $("new").setAttribute("aria-expanded", String(open));
+  if (open) fillPanel();
+}
+
+$("new").addEventListener("click", (e) => {
+  e.stopPropagation();
+  setPanel($("new-panel").hidden);
+});
+document.addEventListener("click", (e) => {
+  if (!$("new-panel").hidden && !e.target.closest(".menu")) setPanel(false);
+}, true);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("new-panel").hidden) {
+    setPanel(false);
+    $("new").focus();
+    e.stopImmediatePropagation();
+  }
+}, true);
 
 function showExample(example) {
   $("where").textContent = example.title;
@@ -914,7 +969,11 @@ addEventListener("scroll", () => (tip.hidden = true), { passive: true });
 /* Start */
 
 for (const input of document.querySelectorAll("[data-pick]")) {
-  input.addEventListener("change", () => input.files[0] && start(input.files[0]));
+  input.addEventListener("change", () => {
+    if (!input.files[0]) return;
+    setPanel(false);
+    start(input.files[0]);
+  });
 }
 
 const drop = $("drop");

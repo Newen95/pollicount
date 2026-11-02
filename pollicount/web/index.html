@@ -22,7 +22,18 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>
       </a>
       <span class="divider" aria-hidden="true"></span>
-      <a class="new" href="./">New video<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></a>
+      <div class="menu">
+        <button class="new" id="new" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="new-panel">New video<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        <div class="panel" id="new-panel" hidden>
+          <p class="panel-title">Your own video</p>
+          <div class="panel-row">
+            <label class="btn primary small"><input type="file" accept="video/*" capture="environment" data-pick hidden>Film a patch</label>
+            <label class="btn small"><input type="file" accept="video/*" data-pick hidden>Upload a video</label>
+          </div>
+          <p class="panel-title">Or an example</p>
+          <ul class="panel-examples" id="panel-examples"></ul>
+        </div>
+      </div>
     </div>
   </header>
 
