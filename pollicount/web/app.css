@@ -27,6 +27,11 @@ html, .panel { scrollbar-width: auto; scrollbar-color: rgba(200, 164, 90, 0.55) 
 ::-webkit-scrollbar-corner { background: transparent; }
 [hidden] { display: none !important; }
 .resuming #start, .resuming #footer, .resuming #index { display: none; }
+.resuming #analysis[hidden] { display: grid !important; }
+.resuming #side[hidden] { display: flex !important; }
+.resuming #back[hidden] { display: grid !important; }
+.resuming #skeleton[hidden] { display: block !important; }
+.resuming #progress { display: none; }
 
 body {
   display: flex;
@@ -270,6 +275,12 @@ html { scroll-behavior: smooth; }
 .ghost .name { color: rgba(159, 179, 168, 0.55); }
 .ghost .count { border-color: rgba(200, 164, 90, 0.25); color: rgba(200, 164, 90, 0.4); box-shadow: none; }
 .skel { display: block; height: 4px; margin-top: 3px; border-radius: 2px; background: linear-gradient(90deg, rgba(236, 230, 214, 0.06), rgba(236, 230, 214, 0.14), rgba(236, 230, 214, 0.06)) 0 0 / 200% 100%; animation: shimmer 1.6s ease-in-out infinite; }
+.skeleton .crumb { width: 72px; margin: 4px 0 26px; }
+.skeleton .tally div { align-items: center; padding: 18px 0; }
+.skeleton .tally .skel { width: 38%; height: 10px; margin: 0; border-radius: 5px; }
+.skeleton .tally .num { width: 48px; height: 18px; }
+.skeleton .tally .big { width: 40px; height: 44px; }
+.where:empty::before { content: ""; display: block; width: 220px; height: 14px; border-radius: 7px; background: rgba(236, 230, 214, 0.08); }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 
 /* Detail panel */

@@ -130,6 +130,7 @@ function show(screen) {
 
 function fail(message) {
   $("progress").hidden = true;
+  $("skeleton").hidden = true;
   $("error-text").textContent = message;
   $("analysis-error").hidden = false;
 }
@@ -248,10 +249,13 @@ async function start(file) {
 
 async function resume(id) {
   show("analysis");
+  $("where").textContent = "";
   renderGhost();
   $("progress").hidden = true;
+  $("skeleton").hidden = false;
   try {
     const job = await follow(id, () => {
+      $("skeleton").hidden = true;
       $("progress").hidden = false;
       waitingScreen("Your video");
       renderStages(1, 0);
@@ -331,18 +335,19 @@ function showExample(example) {
 
 async function showResult(id) {
   currentId = id;
+  video.src = `api/analyses/${id}/video`;
+  video.play().catch(() => {});
   result = await (await fetch(`api/analyses/${id}/result`)).json();
   tracks = [
     ...result.flowers.map((t) => ({ ...t, kind: "flower", byFrame: index(t.boxes) })),
     ...result.insects.map((t) => ({ ...t, kind: "insect", byFrame: index(t.boxes) })),
   ];
-  video.src = `api/analyses/${id}/video`;
-  video.play().catch(() => {});
 
   const { record } = result;
   far = new Set(result.insects.filter((i) => i.from_motion).map((i) => i.id));
   visitors = visitorsOf(record);
   $("progress").hidden = true;
+  $("skeleton").hidden = true;
   $("results").hidden = false;
   const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
   $("download").href = URL.createObjectURL(blob);

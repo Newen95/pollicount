@@ -184,10 +184,14 @@
           <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in the video">
           <span id="clock" class="clock">0:00 / 0:00</span>
         </div>
-        <div class="ledger" id="ledger" role="tree" aria-label="Visits by insect"></div>
+        <div class="ledger ghost" id="ledger" role="tree" aria-label="Visits by insect" aria-hidden="true"><div class="row" style="--level: 1"><span class="label"><span class="leaf"></span><span class="name">All visits</span></span><span class="track"><span class="skel"></span></span><span class="count">?</span></div><div class="row" style="--level: 2"><span class="label"><span class="leaf"></span><span class="name">Insect groups</span></span><span class="track"><span class="skel"></span></span><span class="count">?</span></div></div>
       </div>
 
       <aside class="detail">
+        <div id="skeleton" class="skeleton" hidden aria-hidden="true">
+          <span class="skel crumb"></span>
+          <div class="tally"><div class="lead"><span class="skel"></span><span class="skel big"></span></div><div><span class="skel"></span><span class="skel num"></span></div><div><span class="skel"></span><span class="skel num"></span></div><div><span class="skel"></span><span class="skel num"></span></div></div>
+        </div>
         <div id="progress" class="waiting" aria-live="polite">
           <h2>Counting your video</h2>
           <dl class="tally compact"><div><dt>Time left</dt><dd id="eta">estimating</dd></div></dl>
