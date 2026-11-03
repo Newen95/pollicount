@@ -26,6 +26,7 @@ html, .panel { scrollbar-width: auto; scrollbar-color: rgba(200, 164, 90, 0.55) 
 ::-webkit-scrollbar-thumb:hover { background: rgba(200, 164, 90, 0.8) padding-box; }
 ::-webkit-scrollbar-corner { background: transparent; }
 [hidden] { display: none !important; }
+.resuming #start, .resuming #footer, .resuming #index { display: none; }
 
 body {
   display: flex;
