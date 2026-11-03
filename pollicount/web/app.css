@@ -65,7 +65,8 @@ main { flex: 1; }
 .new:hover { background: #d9b86e; }
 .menu { position: relative; }
 .panel { position: absolute; z-index: 20; top: calc(100% + 10px); right: 0; width: min(360px, calc(100vw - 32px)); max-height: min(560px, 75vh); overflow: auto; padding: 6px 16px 16px; border: 1px solid var(--brass); border-radius: 10px; background: #13261f; box-shadow: 0 24px 50px rgba(0, 0, 0, 0.5); }
-.panel-title { margin: 14px 0 8px; font: 600 1.15rem var(--serif); }
+.panel-title { margin: 14px 0 10px; font: 600 1.15rem var(--serif); }
+.panel-row + .panel-title { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--brass-line); }
 .panel-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn.small { padding: 8px 14px; font-size: 0.9rem; }
 .panel-examples { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
@@ -250,6 +251,11 @@ h1 { margin: 0; font: 600 clamp(2.6rem, 5vw, 4.1rem)/1.02 var(--serif); letter-s
 .bar { grid-column: 2 / 4; height: 2px; margin-top: -4px; background: rgba(236, 230, 214, 0.12); }
 .bar span { display: block; height: 100%; background: var(--pollen); box-shadow: 0 0 8px rgba(224, 185, 68, 0.4); transition: width 300ms ease; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.far { margin-top: 16px; padding: 14px 18px 16px; border: 1px solid rgba(134, 182, 214, 0.45); border-radius: 6px; background: rgba(134, 182, 214, 0.06); color: var(--sage); font-size: 0.9rem; }
+.far p { margin: 8px 0 0; }
+.far .far-tag { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 3px 12px 3px 9px; border: 1px solid var(--uv); border-radius: 999px; color: var(--uv); font-weight: 600; font-size: 0.85rem; }
+.far-tag svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.far .far-missing { color: rgba(159, 179, 168, 0.8); font-size: 0.85rem; }
 .note { margin: 12px 2px 0; color: var(--sage); font-size: 0.875rem; }
 .calm, .hint { margin: 16px 0 0; padding: 14px 16px; border: 1px dashed rgba(200, 164, 90, 0.4); border-radius: 6px; color: var(--sage); font-size: 0.9rem; }
 .failure { padding: 18px 20px; border: 1px solid rgba(240, 165, 143, 0.5); border-radius: 6px; background: rgba(240, 165, 143, 0.06); }

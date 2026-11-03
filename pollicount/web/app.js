@@ -87,7 +87,16 @@ let far = new Set();
 let hoverId = null;
 let spot = null;
 /** Insect ids to stand out on the video, from the row selected in the list (null: all equal). */
-const FAR_NOTE = "From this distance, PolliCount counts visits but cannot tell individual insects apart.";
+/** Card shown when visits come from insects found by their movement, too small for SAM to outline. */
+function farCard(all) {
+  const card = el("div", { className: "far" });
+  card.append(
+    el("p", { className: "far-tag" }, svg('<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/></svg>'), el("span", { textContent: "Seen from afar" })),
+    el("p", { textContent: `${all ? "These insects were" : "Some insects were"} too small to outline and were found from their movement. From this distance PolliCount still counts visits and their duration, and names the group.` }),
+    el("p", { className: "far-missing", textContent: "Not shown: the number of distinct insects (one that leaves and comes back looks new), individual cards, and the total time on flowers (a resting insect can be missed)." }),
+  );
+  return card;
+}
 let rows = [];
 
 const el = (tag, props = {}, ...children) => {
@@ -579,8 +588,7 @@ function renderPane(row) {
     }
     pane.append(tally(items, "tally"));
     if (farVisits) {
-      const which = farVisits === record.total_visits ? "All visits were" : `${plural(farVisits, "visit")} ${farVisits === 1 ? "was" : "were"}`;
-      pane.append(el("p", { className: "note", textContent: `${which} by insects too small to outline, found from their movement. ${FAR_NOTE}` }));
+      pane.append(farCard(farVisits === record.total_visits));
     }
     pane.append(el("p", { className: "hint", textContent: !record.total_visits ? emptyMessage(record) : visitors.size ? "Pick a group or an insect in the list to see its details." : "Pick a group in the list to see its details." }));
     return pane;
@@ -600,7 +608,7 @@ function renderPane(row) {
         ["Average visit", seconds(onFlowers(row.visits) / row.visits.length)],
       ]),
     );
-    if (row.visits.some((v) => far.has(v.insect))) pane.append(el("p", { className: "note", textContent: FAR_NOTE }));
+    if (row.visits.some((v) => far.has(v.insect))) pane.append(farCard(row.visits.every((v) => far.has(v.insect))));
     if (info.traits.length) {
       pane.append(el("h3", { textContent: "How to tell them apart" }), el("ul", { className: "traits" }, ...info.traits.map((t) => el("li", { textContent: t }))));
     }
