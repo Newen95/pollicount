@@ -114,6 +114,7 @@ function show(screen) {
   $("footer").hidden = screen !== "start";
   $("analysis").hidden = screen !== "analysis";
   $("side").hidden = screen !== "analysis";
+  $("back").hidden = screen !== "analysis";
 }
 
 function fail(message) {
