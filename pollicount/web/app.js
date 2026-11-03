@@ -92,8 +92,8 @@ function farCard(all) {
   const card = el("div", { className: "far" });
   card.append(
     el("p", { className: "far-tag" }, svg('<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/></svg>'), el("span", { textContent: "Seen from afar" })),
-    el("p", { textContent: `${all ? "Insects" : "Some insects"} found by their movement: visits and groups are counted.` }),
-    el("p", { className: "far-missing", textContent: "Not shown from this far: distinct insects and time on flowers." }),
+    el("p", { textContent: `${all ? "Insects" : "Some insects"} found by their movement: visits are counted, and sorted into groups like bees or hoverflies.` }),
+    el("p", { className: "far-missing", textContent: "Not shown from this far: how many individual insects there were, and their time on flowers." }),
   );
   return card;
 }
