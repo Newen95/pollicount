@@ -121,6 +121,7 @@ const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 
 function show(screen) {
   $("start").hidden = screen !== "start";
   $("footer").hidden = screen !== "start";
+  $("index").hidden = screen !== "start";
   $("analysis").hidden = screen !== "analysis";
   $("side").hidden = screen !== "analysis";
   $("back").hidden = screen !== "analysis";

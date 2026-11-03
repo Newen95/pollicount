@@ -16,6 +16,7 @@
 <body>
   <header class="top wrap">
     <a class="brand" href="./"><span class="back" id="back" hidden data-tip="Back to the start page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4l-8 8 8 8"/></svg></span><img class="mark" src="mark.svg" alt="">PolliCount</a>
+    <nav class="index" id="index" aria-label="Sections"><a href="#how">How it works</a><a href="#why">Why it matters</a><a href="#compare">Today vs PolliCount</a><a href="#get">What you get</a><a href="#trust">What powers it</a></nav>
     <div class="side" id="side" hidden>
       <span class="where" id="where"></span>
       <a class="icon" id="download" download="pollicount.json" aria-label="Download the counts" data-tip="Download the counts (JSON)" hidden>
@@ -94,13 +95,70 @@
         </div>
       </div>
 
-      <section class="how">
+      <section class="how" id="how">
         <h2 class="part">How it works</h2>
         <ol class="steps">
           <li><span><strong>Film</strong>Point your phone at a patch of flowers and keep it still while insects come and go.</span></li>
           <li><span><strong>Watch it count</strong>Every insect is followed on screen, and each landing on a flower counts as a visit.</span></li>
           <li><span><strong>Keep the record</strong>See who came to which flower, then download the counts for your survey.</span></li>
         </ol>
+      </section>
+
+      <section class="band why" id="why">
+        <h2 class="part">Why it matters</h2>
+        <ul class="facts">
+          <li><b>75%</b><span>of the world's leading food crops benefit from pollinating animals.</span><small>IPBES, 2016</small></li>
+          <li><b>10 min</b><span>is how long a volunteer watches one flower patch today, counting each insect by eye.</span><small>FIT Count, UK Pollinator Monitoring Scheme</small></li>
+          <li><b>1 video</b><span>is enough with PolliCount: film the patch, and the counting and naming of each visitor are done for you.</span></li>
+        </ul>
+      </section>
+
+      <section class="band compare" id="compare">
+        <h2 class="part">Today vs PolliCount</h2>
+        <div class="vs">
+          <div class="side-today">
+            <p class="vs-title">Today, by eye</p>
+            <ul>
+              <li>Someone watches the patch for 10 minutes, live or on a recording</li>
+              <li>They must tell a hoverfly from a bee at a glance</li>
+              <li>Each insect is written down by hand as it lands</li>
+              <li>Only totals remain: when and where each visit happened is lost</li>
+            </ul>
+          </div>
+          <div class="side-pc">
+            <p class="vs-title">With PolliCount</p>
+            <ul>
+              <li>Film the patch, and the video is counted for you</li>
+              <li>Each visitor is sorted into its group, with the clues that gave it away</li>
+              <li>Every landing is logged: who, on which flower, and when</li>
+              <li>Each count leads to its moment in the video, to check it in one click</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="band get" id="get">
+        <h2 class="part">What you get</h2>
+        <div class="shot-grid">
+          <figure class="shot"><img src="results.webp" loading="lazy" alt="PolliCount results for bumblebees on a thistle"></figure>
+          <ol class="callouts">
+            <li><span><strong>Every visit on a timeline</strong>When each insect landed and how long it stayed, per group and per insect.</span></li>
+            <li><span><strong>Who came</strong>Each visitor sorted into the ten FIT Count groups, with close-ups and the clues that gave it away.</span></li>
+            <li><span><strong>The insect in the spotlight</strong>Pick one in the list and it stands out on the video.</span></li>
+            <li><span><strong>Data you can keep</strong>Download the counts for your survey.</span></li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="band trust" id="trust">
+        <h2 class="part">What powers it</h2>
+        <div class="trust-grid">
+          <div class="models">
+            <div class="model"><b>SAM 3.1</b><span>follows the insects and flowers, frame by frame.</span></div>
+            <div class="model"><b>Muse Spark</b><span>tells which group each visitor belongs to, and names the plant when needed.</span></div>
+          </div>
+        </div>
+        <p class="trust-note">Tested on annotated videos of honeybees filmed from afar (Monash University dataset). The limits are listed openly in the <a href="https://github.com/Newen95/pollicount#known-limits">project notes</a>.</p>
       </section>
     </section>
 
@@ -150,29 +208,7 @@
   </main>
 
   <footer class="footer" id="footer">
-    <div class="footer-in wrap">
-      <div class="about">
-        <span class="brand"><img class="mark" src="mark.svg" alt="">PolliCount</span>
-        <p>Turns a short phone video of flowers into a pollinator count, ready for surveys like the Flower-Insect Timed Count.</p>
-      </div>
-      <div>
-        <h2>Built with</h2>
-        <ul>
-          <li><b>SAM 3.1</b>tracks every insect and flower</li>
-          <li><b>Muse Spark</b>tells who visited</li>
-          <li><b>Modal</b>runs the analysis</li>
-        </ul>
-      </div>
-      <div>
-        <h2>Project</h2>
-        <ul class="links">
-          <li><a href="https://github.com/Newen95/pollicount">Source code on GitHub</a></li>
-          <li><a href="https://ukpoms.org.uk/fit-counts">The FIT Count survey</a></li>
-          <li><a href="https://github.com/Newen95/pollicount#credits">Video and image credits</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-base wrap"><span>PolliCount 2026, open source under the MIT licence</span><span>Made for the Meta Global AI Developer Hackathon</span></div>
+    <div class="footer-base wrap"><span class="brand"><img class="mark" src="mark.svg" alt="">PolliCount</span><span>Made with SAM 3.1 and Muse Spark for the Meta Global AI Developer Hackathon</span><span class="links"><a href="https://github.com/Newen95/pollicount">Source code</a><a href="https://github.com/Newen95/pollicount#credits">Credits</a><a href="https://github.com/Newen95/pollicount/blob/main/LICENSE">MIT licence</a></span></div>
   </footer>
 </body>
 </html>
