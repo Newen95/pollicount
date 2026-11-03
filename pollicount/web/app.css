@@ -17,6 +17,14 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Scrollbars in the cabinet colours: a thin brass thumb on the velvet. */
+html, .panel { scrollbar-width: thin; scrollbar-color: rgba(200, 164, 90, 0.55) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 999px; background: rgba(200, 164, 90, 0.5) padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(200, 164, 90, 0.8) padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
 [hidden] { display: none !important; }
 
 body {
