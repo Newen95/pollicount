@@ -99,6 +99,8 @@ five together:
 
 Uses Meta's Segment Anything Model (SAM 3.1) through the Meta Model API, and `meta-sam-parser` (SAM License).
 
+Fonts: Cormorant Garamond and Atkinson Hyperlegible Next, served with the app (SIL Open Font License 1.1).
+
 Group illustrations: generated with Muse Image and reviewed against each group's diagnostic traits with
 Muse Spark (`scripts/make_plates.py`).
 

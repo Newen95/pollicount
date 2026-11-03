@@ -7,9 +7,8 @@
   <meta name="description" content="Count the pollinators visiting a flower patch from a phone video.">
   <meta name="theme-color" content="#10201a">
   <link rel="icon" href="mark.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Atkinson+Hyperlegible+Next:wght@400;600;800&display=swap">
+  <link rel="preload" href="fonts/cormorant-garamond.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="app.css">
   <script src="app.js" defer></script>
   <script>if (/[?&]a=/.test(location.search)) document.documentElement.classList.add("resuming");</script>
@@ -68,10 +67,10 @@
               </ul>
             </div>
             <p id="start-error" class="error" role="alert" hidden></p>
-            <div id="examples" hidden>
+            <div id="examples">
               <p class="or" aria-hidden="true"><span>or</span></p>
               <h2 class="part">Try an example</h2>
-              <ul class="examples" id="examples-list"></ul>
+              <ul class="examples" id="examples-list"><li class="example-ghost" aria-hidden="true"><span class="example"><span class="poster"></span><span><span class="skel"></span><span class="skel short"></span></span><span class="open"></span></span></li><li class="example-ghost" aria-hidden="true"><span class="example"><span class="poster"></span><span><span class="skel"></span><span class="skel short"></span></span><span class="open"></span></span></li><li class="example-ghost" aria-hidden="true"><span class="example"><span class="poster"></span><span><span class="skel"></span><span class="skel short"></span></span><span class="open"></span></span></li></ul>
             </div>
           </div>
         </div>

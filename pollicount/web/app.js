@@ -272,8 +272,12 @@ async function resume(id) {
 async function listExamples() {
   const response = await fetch("api/examples").catch(() => null);
   const examples = response?.ok ? await response.json() : [];
-  if (!examples.length) return;
   const list = $("examples-list");
+  list.replaceChildren();
+  if (!examples.length) {
+    $("examples").hidden = true;
+    return;
+  }
   for (const example of examples) {
     const poster = el("img", { src: `api/examples/${example.id}/poster`, alt: "", loading: "lazy" });
     const credit = `${example.credit.replace(", Wikimedia Commons", "")}, ${example.license}`;
@@ -283,7 +287,6 @@ async function listExamples() {
     open.append(svg('<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>'));
     list.append(el("li", {}, el("a", { className: "example", href: `?a=${example.id}` }, poster, text, open)));
   }
-  $("examples").hidden = false;
 }
 
 /* New video menu, on the results page */
