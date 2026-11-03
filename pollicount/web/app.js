@@ -187,13 +187,16 @@ function upload(file) {
   });
 }
 
-async function follow(id) {
+/** Polls an analysis until it is done; ``onWait`` runs once, the first time it is still running. */
+async function follow(id, onWait) {
   for (;;) {
     const response = await fetch(`api/analyses/${id}`);
     if (response.status === 404) throw new Error("This analysis is no longer available: analyses are kept for 24 hours. Upload the video again.");
     const job = await response.json();
     if (job.status === "failed") throw new Error(job.error);
     if (job.status === "done") return job;
+    onWait?.();
+    onWait = null;
     setStage(job.stage, job.progress);
     await new Promise((r) => setTimeout(r, 700));
   }
@@ -244,10 +247,15 @@ async function start(file) {
 }
 
 async function resume(id) {
-  waitingScreen("Your video");
-  renderStages(1, 0);
+  show("analysis");
+  renderGhost();
+  $("progress").hidden = true;
   try {
-    const job = await follow(id);
+    const job = await follow(id, () => {
+      $("progress").hidden = false;
+      waitingScreen("Your video");
+      renderStages(1, 0);
+    });
     if (job.example) showExample(job.example);
     await showResult(id);
   } catch (error) {
