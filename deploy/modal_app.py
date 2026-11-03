@@ -18,7 +18,7 @@ app = modal.App("pollicount", image=image)
     timeout=60 * 60,
 )
 @modal.concurrent(max_inputs=50)
-@modal.asgi_app()
+@modal.asgi_app(label="pollicount")
 def web():
     from pollicount.server import production_app
 
