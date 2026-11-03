@@ -95,6 +95,21 @@ five together:
 | Distinct visitors | 10 | 0 | 22 |
 | Seconds on flowers | 312 | 0 | 213 |
 
+### Choice of classifier
+
+Muse Spark Open and Muse Spark 1.3 on the same 19 visitor tracks (bumblebees, honeybees from afar, a hoverfly,
+a butterfly, a wasp; groups checked by eye on the crops), three runs each, with the crops the app sends:
+
+| | Muse Spark Open (Baseten) | Muse Spark 1.3 (Meta Model API) |
+|---|---|---|
+| Correct group | 57/57 | 56/57 (a far honeybee taken for a hoverfly) |
+| Same answer on all three runs | 19/19 tracks | 18/19 tracks |
+| Median time per track | 6.9 s | 13.7 s |
+| Cost per track (tokens used, list prices) | $0.0035 | $0.0068 |
+
+The sample is small and accuracy differs by one answer, but Muse Spark Open is twice as fast and half the price,
+and its open weights let a lab rerun the same model later. It is the default.
+
 ## Credits
 
 Uses Meta's Segment Anything Model (SAM 3.1) through the Meta Model API, and `meta-sam-parser` (SAM License).

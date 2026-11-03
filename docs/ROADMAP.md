@@ -20,7 +20,8 @@ Each level must be shippable on its own: if time runs out, the previous level is
 
 - [ ] Far-field mode: motion candidates verified by Muse Spark Open (T1: visit F1 0.62 vs 0 with SAM alone), in the pipeline
 - [ ] Accuracy measured on the Monash annotated videos (visit precision and recall, classification accuracy)
-- [ ] Backend comparison table: Muse Spark, Muse Spark Open, Muse Glimmer (accuracy, cost per video, time)
+- [x] Backend comparison table: Muse Spark and Muse Spark Open (accuracy, cost, time), see README
+- [ ] Muse Glimmer in the comparison table
 - [ ] Volunteer review: correct a group, discard a false visit, totals update instantly
 - [ ] Optional FIT Count record, following the official PoMS form field by field: date, time and place filled
   automatically, weather from Open-Meteo, target flower and flower count proposed by the analysis, habitat,
