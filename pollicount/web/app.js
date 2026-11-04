@@ -878,7 +878,7 @@ function toggleSpeed() {
 // The YouTube player loads only on demand, so the landing page stays light and sets no third-party cookie.
 $("play-demo").addEventListener("click", (event) => {
   const frame = el("iframe", {
-    src: "https://www.youtube-nocookie.com/embed/xXs6WBkGKAA?autoplay=1&rel=0&cc_load_policy=1",
+    src: "https://www.youtube-nocookie.com/embed/t5HYNmIMTm4?autoplay=1&rel=0&cc_load_policy=1",
     title: "PolliCount demo",
     allow: "autoplay; encrypted-media; picture-in-picture; fullscreen",
     allowFullscreen: true,
