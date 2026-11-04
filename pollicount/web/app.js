@@ -875,6 +875,16 @@ function toggleSpeed() {
   $("speed").setAttribute("aria-pressed", String(video.playbackRate !== 1));
 }
 
+// The YouTube player loads only on demand, so the landing page stays light and sets no third-party cookie.
+$("play-demo").addEventListener("click", (event) => {
+  const frame = el("iframe", {
+    src: "https://www.youtube-nocookie.com/embed/xXs6WBkGKAA?autoplay=1&rel=0&cc_load_policy=1",
+    title: "PolliCount demo",
+    allow: "autoplay; encrypted-media; picture-in-picture; fullscreen",
+    allowFullscreen: true,
+  });
+  event.currentTarget.replaceWith(frame);
+});
 $("play").addEventListener("click", togglePlay);
 $("prev").addEventListener("click", () => jump(-1));
 $("next").addEventListener("click", () => jump(1));
