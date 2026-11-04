@@ -4,6 +4,10 @@ Zero-shot pollinator counting from an ordinary phone video, for citizen science.
 
 Built during the Meta Global AI Developer Hackathon (Oct 26 - Nov 4, 2026). Everything in this repository was written during the event.
 
+**Try it:** https://newen-calle--pollicount.us-east.modal.run (any browser, phone or computer)
+
+**Demo video (2:42):** https://youtu.be/t5HYNmIMTm4
+
 ## Idea
 
 A volunteer films a flower patch with a phone for 10 minutes. PolliCount:
@@ -45,18 +49,14 @@ SAM always runs on the Meta Model API (`META_API_KEY`). It is billed per frame, 
 Tests use synthetic SAM outputs and never call an API. All checks (lint, tests, regression scenario,
 dependency audit, secret scan): `uv run python scripts/check.py`. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Status
-
-Work in progress.
-
 ## What counts
 
 FIT Count asks volunteers to count every insect *sitting on or landing on* a target flower, each insect once.
 There is no agreed minimum duration in the literature, so PolliCount makes "landing" measurable: an insect
 counts when it stays nearly still for at least 0.3 s (`--min-visit`) with its centre, a third of its body,
 or its legs (the bottom third of its box, for side views, or the middle of its bottom edge, for a
-butterfly with its wings folded upright) on a flower. This leaves out insects flying past. The record gives distinct insects per group, as FIT Count expects, and keeps
-every visit (insect, flower, start, duration) for finer analyses. Spiders and caterpillars are not counted.
+butterfly with its wings folded upright) on a flower. This leaves out insects flying past. The record gives
+distinct insects per group, as FIT Count expects, and keeps every visit (insect, flower, start, duration) for finer analyses. Spiders and caterpillars are not counted.
 
 ## Known limits
 
@@ -122,8 +122,8 @@ Muse Spark (`scripts/make_plates.py`).
 Example videos (Wikimedia Commons): "Sphegina - 2018-05-26" by Pristurus (CC BY-SA 3.0), "Bumblebee on Lilac"
 by Limulus (CC BY-SA 4.0), "Nectaring activity of Danaus chrysippus - Plain Tiger (Female) on Lantana camara
 flower DSC 3003" by Sandipoutsider (CC BY-SA 4.0), two excerpts of "Bumble bees (Bombus) on thistle" by The
-Nature Box (CC BY-SA 3.0), "Pollinators (20210622-FPAC-KLS-0001)" by the USDA (public domain). The far-field example is a 2-minute excerpt of test video T7
-of the Monash dataset below.
+Nature Box (CC BY-SA 3.0), "Pollinators (20210622-FPAC-KLS-0001)" by the USDA (public domain). The far-field example is a 2-minute excerpt of test video T7 of the Monash
+dataset below. The demo video credits its footage in its description.
 
 Evaluation data: Ratnayake, M. N., Amarathunga, D. C., Zaman, A., Dyer, A. G., Dorin, A. (2022).
 Spatial Monitoring and Insect Behavioural Analysis Dataset. Monash University. CC BY 4.0.
