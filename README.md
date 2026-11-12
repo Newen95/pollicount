@@ -4,7 +4,7 @@ Zero-shot pollinator counting from an ordinary phone video, for citizen science.
 
 Built during the Meta Global AI Developer Hackathon (Oct 26 - Nov 4, 2026). Everything in this repository was written during the event.
 
-**Try it:** https://newen-calle--pollicount.us-east.modal.run (any browser, phone or computer)
+**Live app:** offline since the end of the hackathon (it ran on Modal at https://newen-calle--pollicount.us-east.modal.run); the demo video below shows it. To run it yourself, see Usage.
 
 **Demo video (2:42):** https://youtu.be/t5HYNmIMTm4
 
